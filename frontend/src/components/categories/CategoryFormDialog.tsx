@@ -37,6 +37,7 @@ const formSchema = z.object({
   icon:          z.string().min(1, 'Icon is required'),
   description:   z.string().optional(),
   has_quantity:  z.boolean(),
+  poster_layout: z.boolean(),
   custom_fields: z.array(customFieldSchema),
 })
 
@@ -61,6 +62,7 @@ export function CategoryFormDialog({ open, onClose, category }: Props) {
         icon:          '📦',
         description:   '',
         has_quantity:  false,
+        poster_layout: false,
         custom_fields: [],
       },
     })
@@ -75,7 +77,8 @@ export function CategoryFormDialog({ open, onClose, category }: Props) {
           name:         category.name,
           icon:         category.icon,
           description:  category.description ?? '',
-          has_quantity: category.has_quantity,
+          has_quantity:  category.has_quantity,
+          poster_layout: category.poster_layout,
           custom_fields: category.custom_fields.map((f) => ({
             key:      f.key,
             label:    f.label,
@@ -85,7 +88,7 @@ export function CategoryFormDialog({ open, onClose, category }: Props) {
           })),
         })
       } else {
-        reset({ name: '', icon: '📦', description: '', has_quantity: false, custom_fields: [] })
+        reset({ name: '', icon: '📦', description: '', has_quantity: false, poster_layout: false, custom_fields: [] })
       }
     }
   }, [open, category, reset])
@@ -105,12 +108,12 @@ export function CategoryFormDialog({ open, onClose, category }: Props) {
       if (isEdit) {
         await updateCategory.mutateAsync({
           id:   category!.id,
-          data: { name: data.name, icon: data.icon, description: data.description || null, has_quantity: data.has_quantity, custom_fields },
+          data: { name: data.name, icon: data.icon, description: data.description || null, has_quantity: data.has_quantity, poster_layout: data.poster_layout, custom_fields },
         })
         toast.success('Category updated')
       } else {
         await createCategory.mutateAsync({
-          name: data.name, icon: data.icon, description: data.description || null, has_quantity: data.has_quantity, custom_fields,
+          name: data.name, icon: data.icon, description: data.description || null, has_quantity: data.has_quantity, poster_layout: data.poster_layout, custom_fields,
         })
         toast.success('Category created')
       }
@@ -157,6 +160,18 @@ export function CategoryFormDialog({ open, onClose, category }: Props) {
               )}
             />
             <Label htmlFor="has-quantity">Track quantity (e.g. multiple copies of the same item)</Label>
+          </div>
+
+          {/* Poster layout toggle */}
+          <div className="flex items-center gap-2">
+            <Controller
+              control={control}
+              name="poster_layout"
+              render={({ field: { value, onChange } }) => (
+                <Checkbox id="poster-layout" checked={value} onCheckedChange={onChange} />
+              )}
+            />
+            <Label htmlFor="poster-layout">Poster layout (vertical cover images — ideal for manga, movies, games)</Label>
           </div>
 
           {/* Custom fields */}

@@ -16,6 +16,7 @@ class Category(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     custom_fields: Mapped[list[Any]] = mapped_column(JSON, nullable=False, default=list)
     has_quantity:  Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    poster_layout: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )

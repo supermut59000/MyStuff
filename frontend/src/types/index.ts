@@ -15,6 +15,7 @@ export interface Category {
   description:   string | null
   custom_fields: CustomFieldDefinition[]
   has_quantity:  boolean
+  poster_layout: boolean
   item_count:    number
   total_value:   number
   created_at:    string

@@ -6,6 +6,7 @@ import { useCategories } from '@/hooks/use-categories'
 import { useDebounce } from '@/hooks/use-debounce'
 import { Button } from '@/components/ui/button'
 import { ItemCard } from '@/components/items/ItemCard'
+import { PosterCard } from '@/components/items/PosterCard'
 import { ItemFilters, type Filters } from '@/components/items/ItemFilters'
 import { ItemFormDialog } from '@/components/items/ItemFormDialog'
 import { ItemViewDialog } from '@/components/items/ItemViewDialog'
@@ -205,25 +206,41 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
       )}
 
       {!seriesView && !isLoading && data && data.items.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {data.items.map((item) => (
-            <div key={item.id} className="relative">
-              {selectMode && selectedIds.has(item.id) && (
-                <div className="absolute inset-0 z-10 rounded-xl ring-2 ring-primary pointer-events-none" />
-              )}
-              <ItemCard
-                item={item}
-                onClick={() => {
-                  if (selectMode) {
-                    toggleItem(item.id)
-                  } else {
-                    setViewingItem(item)
-                  }
-                }}
-              />
-            </div>
-          ))}
-        </div>
+        category?.poster_layout ? (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {data.items.map((item) => (
+              <div key={item.id} className="relative">
+                {selectMode && selectedIds.has(item.id) && (
+                  <div className="absolute inset-0 z-10 rounded-lg ring-2 ring-primary pointer-events-none" />
+                )}
+                <PosterCard
+                  item={item}
+                  onClick={() => {
+                    if (selectMode) toggleItem(item.id)
+                    else setViewingItem(item)
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {data.items.map((item) => (
+              <div key={item.id} className="relative">
+                {selectMode && selectedIds.has(item.id) && (
+                  <div className="absolute inset-0 z-10 rounded-xl ring-2 ring-primary pointer-events-none" />
+                )}
+                <ItemCard
+                  item={item}
+                  onClick={() => {
+                    if (selectMode) toggleItem(item.id)
+                    else setViewingItem(item)
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        )
       )}
 
       {/* Pagination */}

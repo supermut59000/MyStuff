@@ -37,6 +37,7 @@ class CategoryService:
                 "description":   cat.description,
                 "custom_fields": cat.custom_fields,
                 "has_quantity":  cat.has_quantity,
+                "poster_layout": cat.poster_layout,
                 "item_count":    count,
                 "total_value":   float(total_value),
                 "created_at":    cat.created_at,
@@ -71,6 +72,7 @@ class CategoryService:
             "description":   cat.description,
             "custom_fields": cat.custom_fields,
             "has_quantity":  cat.has_quantity,
+            "poster_layout": cat.poster_layout,
             "item_count":    count,
             "created_at":    cat.created_at,
             "updated_at":    cat.updated_at,
@@ -88,6 +90,7 @@ class CategoryService:
             icon=data.icon,
             description=data.description,
             has_quantity=data.has_quantity,
+            poster_layout=data.poster_layout,
             custom_fields=[f.model_dump() for f in data.custom_fields],
         )
         self.db.add(cat)

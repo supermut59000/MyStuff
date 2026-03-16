@@ -33,6 +33,7 @@ class CategoryBase(BaseModel):
     description:   Optional[str] = None
     custom_fields: list[CustomFieldDefinition] = []
     has_quantity:  bool = False
+    poster_layout: bool = False
 
 
 class CategoryCreate(CategoryBase):
@@ -45,6 +46,7 @@ class CategoryUpdate(BaseModel):
     description:   Optional[str] = None
     custom_fields: Optional[list[CustomFieldDefinition]] = None
     has_quantity:  Optional[bool] = None
+    poster_layout: Optional[bool] = None
 
 
 class CategoryResponse(CategoryBase):
