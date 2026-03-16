@@ -25,6 +25,10 @@ class BulkMoveRequest(BaseModel):
     category_id: int
 
 
+class BulkCreateRequest(BaseModel):
+    items: list[ItemCreate]
+
+
 @router.get("/export/csv")
 def export_csv(
     category_id: Optional[int] = Query(None),
@@ -73,6 +77,12 @@ def list_items(
 @router.post("/", response_model=ItemResponse, status_code=201)
 def create_item(data: ItemCreate, db: Session = Depends(get_db)):
     return ItemService(db).create_item(data)
+
+
+@router.post("/bulk-create", status_code=201)
+def bulk_create(data: BulkCreateRequest, db: Session = Depends(get_db)):
+    count = ItemService(db).bulk_create(data.items)
+    return {"created": count}
 
 
 @router.post("/bulk-delete")

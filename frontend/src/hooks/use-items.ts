@@ -136,6 +136,19 @@ export function useBulkMoveItems() {
   })
 }
 
+export function useBulkCreateItems() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (items: object[]) => api.post('/api/items/bulk-create', { items }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['items'] })
+      qc.invalidateQueries({ queryKey: ['manga-series'] })
+      qc.invalidateQueries({ queryKey: ['categories'] })
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    },
+  })
+}
+
 export function useMangaSeries(categoryId: number | null) {
   return useQuery({
     queryKey: ['manga-series', categoryId],

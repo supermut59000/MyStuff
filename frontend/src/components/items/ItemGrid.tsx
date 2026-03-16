@@ -11,6 +11,7 @@ import { ItemFormDialog } from '@/components/items/ItemFormDialog'
 import { ItemViewDialog } from '@/components/items/ItemViewDialog'
 import { BulkActionBar } from '@/components/items/BulkActionBar'
 import { MangaSeriesView } from '@/components/items/MangaSeriesView'
+import { AniListImportDialog } from '@/components/items/AniListImportDialog'
 import type { Item } from '@/types'
 
 function hasSerieTome(fields: { key: string }[]): boolean {
@@ -42,7 +43,8 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
   const [createOpen, setCreateOpen] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
-  const [seriesView, setSeriesView] = useState(false)
+  const [seriesView, setSeriesView]     = useState(false)
+  const [importOpen, setImportOpen]     = useState(false)
 
   const showSeriesToggle = !wishlistOnly && category !== null && hasSerieTome(category.custom_fields)
 
@@ -147,6 +149,11 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
               >
                 <CheckSquare className="mr-1.5 h-4 w-4" />
                 Select
+              </Button>
+            )}
+            {showSeriesToggle && (
+              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                Import série
               </Button>
             )}
             <Button size="sm" onClick={() => setCreateOpen(true)}>
@@ -256,6 +263,14 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
           item={viewingItem}
           category={category}
           onClose={() => setViewingItem(null)}
+        />
+      )}
+
+      {importOpen && category && (
+        <AniListImportDialog
+          open
+          onClose={() => setImportOpen(false)}
+          category={category}
         />
       )}
     </div>

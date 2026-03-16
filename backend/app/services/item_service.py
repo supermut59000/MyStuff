@@ -143,6 +143,30 @@ class ItemService:
         logger.info("Item created: id=%d category_id=%d", item.id, item.category_id)
         return item
 
+    def bulk_create(self, items: list[ItemCreate]) -> int:
+        created = []
+        for data in items:
+            fields = self._get_category_fields(data.category_id)
+            cleaned = validate_custom_data(data.custom_data, fields)
+            item = Item(
+                category_id=data.category_id,
+                name=data.name,
+                description=data.description,
+                condition=data.condition,
+                is_owned=data.is_owned,
+                quantity=data.quantity,
+                value=data.value,
+                custom_data=cleaned,
+                reading_status=data.reading_status,
+                wear_status=data.wear_status,
+                deployment_status=data.deployment_status,
+            )
+            self.db.add(item)
+            created.append(item)
+        self.db.commit()
+        logger.info("Bulk created %d items", len(created))
+        return len(created)
+
     def update_item(self, item_id: int, data: ItemUpdate) -> Item:
         item = self.get_item(item_id)
         update = data.model_dump(exclude_unset=True)
