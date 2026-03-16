@@ -170,7 +170,7 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
       )}
 
       {/* Filters */}
-      {!seriesView && <ItemFilters filters={filters} onChange={handleFilterChange} />
+      {!seriesView && <ItemFilters filters={filters} onChange={handleFilterChange} />}
 
       {/* Bulk action bar */}
       {!seriesView && selectMode && (
