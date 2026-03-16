@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Search, ChevronLeft, BookOpen, Layers, List } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery } from '@tanstack/react-query'
-import { searchAniListList } from '@/lib/anilist'
+import { searchAniListList, extractAuthor } from '@/lib/anilist'
+import { uploadImage } from '@/lib/api'
 import { useBulkCreateItems } from '@/hooks/use-items'
 import { useDebounce } from '@/hooks/use-debounce'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -150,15 +151,36 @@ export function AniListImportDialog({ open, onClose, category }: Props) {
   )?.key ?? 'tome'
 
 
+  const auteurKey = category.custom_fields.find(
+    (f) => f.key === 'auteur' || f.key === 'author'
+  )?.key ?? null
+
   const serieName = selected
     ? (selected.title.english ?? selected.title.romaji)
     : ''
 
+  const uploadCoverToItems = async (ids: number[], coverUrl: string) => {
+    try {
+      const res = await fetch(coverUrl)
+      if (!res.ok) return
+      const blob = await res.blob()
+      const file = new File([blob], 'cover.jpg', { type: blob.type || 'image/jpeg' })
+      await Promise.all(ids.map((id) => uploadImage(id, file)))
+    } catch {
+      // Non-blocking: cover upload failure should not fail the import
+    }
+  }
+
   const handleImport = async () => {
     if (!selected || tomeCount === 0) return
 
+    const author = selected.staff?.edges?.length
+      ? extractAuthor(selected.staff.edges)
+      : ''
+
     const baseCustomData: Record<string, unknown> = {}
     if (hasSerieKey) baseCustomData[serieKey] = serieName
+    if (auteurKey && author) baseCustomData[auteurKey] = author
 
     if (mode === 'individual') {
       const items = [...selectedTomes].sort((a, b) => a - b).map((tome) => ({
@@ -178,7 +200,10 @@ export function AniListImportDialog({ open, onClose, category }: Props) {
       }))
 
       try {
-        await bulkCreate.mutateAsync(items)
+        const result = await bulkCreate.mutateAsync(items)
+        if (selected.coverImage?.large && result.ids?.length) {
+          await uploadCoverToItems(result.ids, selected.coverImage.large)
+        }
         toast.success(`${items.length} tomes créés !`)
         onClose()
       } catch (e: unknown) {
@@ -200,7 +225,10 @@ export function AniListImportDialog({ open, onClose, category }: Props) {
       }]
 
       try {
-        await bulkCreate.mutateAsync(items)
+        const result = await bulkCreate.mutateAsync(items)
+        if (selected.coverImage?.large && result.ids?.length) {
+          await uploadCoverToItems(result.ids, selected.coverImage.large)
+        }
         toast.success(`Série "${serieName}" créée (${tomeCount} tomes) !`)
         onClose()
       } catch (e: unknown) {
