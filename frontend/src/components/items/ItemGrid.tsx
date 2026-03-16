@@ -166,7 +166,7 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
 
       {/* Series view */}
       {seriesView && category && (
-        <MangaSeriesView categoryId={category.id} />
+        <MangaSeriesView categoryId={category.id} category={category} />
       )}
 
       {/* Filters */}
