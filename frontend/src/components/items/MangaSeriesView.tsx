@@ -84,7 +84,7 @@ function ManageSeriesDialog({ open, onClose, series, anilist, category }: Manage
         id:   series.grouped_item_id!,
         data: {
           quantity: qty,
-          value:    price > 0 ? String(price * qty) : null,
+          value:    price > 0 ? String(price) : null,
         },
       })
       toast.success(`Série mise à jour : ${qty} tome${qty > 1 ? 's' : ''}`)

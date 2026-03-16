@@ -217,7 +217,7 @@ export function AniListImportDialog({ open, onClose, category }: Props) {
         condition,
         is_owned:       true,
         quantity:       tomeCount,
-        value:          price > 0 ? price * tomeCount : null,
+        value:          price > 0 ? price : null,
         reading_status: readingStatus,
         wear_status:    null,
         deployment_status: null,
