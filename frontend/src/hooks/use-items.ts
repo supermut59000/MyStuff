@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, uploadImage } from '@/lib/api'
-import type { Item, ItemListResponse, DashboardStats } from '@/types'
+import type { Item, ItemListResponse, DashboardStats, MangaSeries, SearchResult } from '@/types'
 
 export interface ItemFilters {
   page?:        number
@@ -133,5 +133,23 @@ export function useBulkMoveItems() {
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
       qc.invalidateQueries({ queryKey: ['categories'] })
     },
+  })
+}
+
+export function useMangaSeries(categoryId: number | null) {
+  return useQuery({
+    queryKey: ['manga-series', categoryId],
+    queryFn: () => api.get<MangaSeries[]>(`/api/manga/series?category_id=${categoryId}`),
+    enabled: categoryId !== null,
+    staleTime: 60_000,
+  })
+}
+
+export function useGlobalSearch(q: string) {
+  return useQuery({
+    queryKey: ['global-search', q],
+    queryFn: () => api.get<SearchResult[]>(`/api/search/?q=${encodeURIComponent(q)}&limit=20`),
+    enabled: q.trim().length >= 2,
+    staleTime: 10_000,
   })
 }

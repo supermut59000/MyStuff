@@ -7,7 +7,8 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { Dashboard } from '@/components/dashboard/Dashboard'
 import { ItemGrid } from '@/components/items/ItemGrid'
 import { CategoryFormDialog } from '@/components/categories/CategoryFormDialog'
-import type { Category } from '@/types'
+import { GlobalSearch } from '@/components/search/GlobalSearch'
+import type { Category, SearchResult } from '@/types'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -17,6 +18,7 @@ export default function App() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
   const [showWishlist, setShowWishlist]             = useState(false)
   const [sidebarOpen, setSidebarOpen]               = useState(false)
+  const [searchOpen, setSearchOpen]                 = useState(false)
 
   // Category form dialog
   const [categoryFormOpen, setCategoryFormOpen]     = useState(false)
@@ -38,6 +40,10 @@ export default function App() {
     setShowWishlist(true)
   }
 
+  const handleSearchResult = (result: SearchResult) => {
+    handleSelectCategory(result.category_id)
+  }
+
   const showDashboard = selectedCategoryId === null && !showWishlist
 
   return (
@@ -56,7 +62,10 @@ export default function App() {
             onEditCategory={openEditCategory}
           />
           <div className="flex flex-1 flex-col overflow-hidden">
-            <Header onMenuToggle={() => setSidebarOpen(o => !o)} />
+            <Header
+              onMenuToggle={() => setSidebarOpen(o => !o)}
+              onSearchOpen={() => setSearchOpen(true)}
+            />
             <main className="flex-1 overflow-y-auto">
               {showDashboard ? (
                 <Dashboard onSelectCategory={handleSelectCategory} />
@@ -75,6 +84,12 @@ export default function App() {
           open={categoryFormOpen}
           onClose={() => setCategoryFormOpen(false)}
           category={editingCategory}
+        />
+
+        <GlobalSearch
+          open={searchOpen}
+          onClose={() => setSearchOpen(false)}
+          onSelectResult={handleSearchResult}
         />
 
         <Toaster />

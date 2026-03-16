@@ -42,10 +42,14 @@ function parseSerieTome(title: string, subtitle?: string): { serie: string; tome
 }
 
 async function lookupGoogleBooks(isbn: string): Promise<BookInfo | null> {
-  const res = await fetch(
-    `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`
-  )
+  const key = import.meta.env.VITE_GOOGLE_BOOKS_KEY
+  const url = key
+    ? `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${key}`
+    : `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Google Books: ${res.status}`)
   const data = await res.json()
+  if (data.error) throw new Error(`Google Books: ${data.error.message}`)
   const info = data.items?.[0]?.volumeInfo
   if (!info) return null
 

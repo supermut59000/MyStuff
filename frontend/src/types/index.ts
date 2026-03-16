@@ -61,6 +61,24 @@ export interface CategoryStat {
   total_value:    number
 }
 
+export interface MangaSeries {
+  serie:       string
+  owned_tomes: number[]
+  owned_count: number
+}
+
+export interface SearchResult {
+  id:            number
+  name:          string
+  category_id:   number
+  category_name: string
+  category_icon: string
+  condition:     string
+  is_owned:      boolean
+  value:         string | null
+  image_path:    string | null
+}
+
 export interface DashboardStats {
   total_items:    number
   total_owned:    number

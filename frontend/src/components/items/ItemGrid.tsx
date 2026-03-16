@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeft, Plus, ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react'
+import { ArrowLeft, Plus, ChevronLeft, ChevronRight, CheckSquare, BookOpen, LayoutGrid } from 'lucide-react'
 import { toast } from 'sonner'
 import { useItems, useBulkDeleteItems, useBulkMoveItems } from '@/hooks/use-items'
 import { useCategories } from '@/hooks/use-categories'
@@ -10,7 +10,14 @@ import { ItemFilters, type Filters } from '@/components/items/ItemFilters'
 import { ItemFormDialog } from '@/components/items/ItemFormDialog'
 import { ItemViewDialog } from '@/components/items/ItemViewDialog'
 import { BulkActionBar } from '@/components/items/BulkActionBar'
+import { MangaSeriesView } from '@/components/items/MangaSeriesView'
 import type { Item } from '@/types'
+
+function hasSerieTome(fields: { key: string }[]): boolean {
+  const keys = fields.map((f) => f.key)
+  return (keys.includes('serie') || keys.includes('series_name')) &&
+         (keys.includes('tome')  || keys.includes('volume_number'))
+}
 
 interface ItemGridProps {
   categoryId:   number | null
@@ -35,6 +42,9 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
   const [createOpen, setCreateOpen] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [seriesView, setSeriesView] = useState(false)
+
+  const showSeriesToggle = !wishlistOnly && category !== null && hasSerieTome(category.custom_fields)
 
   const debouncedSearch = useDebounce(filters.search)
 
@@ -117,14 +127,28 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
         )}
         {category && (
           <>
-            <Button
-              variant={selectMode ? 'secondary' : 'outline'}
-              size="sm"
-              onClick={toggleSelectMode}
-            >
-              <CheckSquare className="mr-1.5 h-4 w-4" />
-              Select
-            </Button>
+            {showSeriesToggle && (
+              <Button
+                variant={seriesView ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={() => setSeriesView((v) => !v)}
+              >
+                {seriesView
+                  ? <><LayoutGrid className="mr-1.5 h-4 w-4" />Items</>
+                  : <><BookOpen className="mr-1.5 h-4 w-4" />Séries</>
+                }
+              </Button>
+            )}
+            {!seriesView && (
+              <Button
+                variant={selectMode ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={toggleSelectMode}
+              >
+                <CheckSquare className="mr-1.5 h-4 w-4" />
+                Select
+              </Button>
+            )}
             <Button size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="mr-1.5 h-4 w-4" />
               Add item
@@ -133,11 +157,16 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
         )}
       </div>
 
+      {/* Series view */}
+      {seriesView && category && (
+        <MangaSeriesView categoryId={category.id} />
+      )}
+
       {/* Filters */}
-      <ItemFilters filters={filters} onChange={handleFilterChange} />
+      {!seriesView && <ItemFilters filters={filters} onChange={handleFilterChange} />
 
       {/* Bulk action bar */}
-      {selectMode && (
+      {!seriesView && selectMode && (
         <BulkActionBar
           selectedCount={selectedIds.size}
           categories={categories}
@@ -149,7 +178,7 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
       )}
 
       {/* Grid */}
-      {isLoading && (
+      {!seriesView && isLoading && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="h-32 animate-pulse rounded-xl bg-muted" />
@@ -157,7 +186,7 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
         </div>
       )}
 
-      {!isLoading && data?.items.length === 0 && (
+      {!seriesView && !isLoading && data?.items.length === 0 && (
         <div className="rounded-xl border border-dashed py-16 text-center text-muted-foreground">
           <p className="font-medium">No items found</p>
           {category && (
@@ -168,7 +197,7 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
         </div>
       )}
 
-      {!isLoading && data && data.items.length > 0 && (
+      {!seriesView && !isLoading && data && data.items.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {data.items.map((item) => (
             <div key={item.id} className="relative">
@@ -191,7 +220,7 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
       )}
 
       {/* Pagination */}
-      {data && data.pages > 1 && (
+      {!seriesView && data && data.pages > 1 && (
         <div className="flex items-center justify-center gap-3 pt-2">
           <Button
             variant="outline" size="sm"
