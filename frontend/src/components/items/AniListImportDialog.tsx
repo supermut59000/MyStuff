@@ -148,8 +148,7 @@ export function AniListImportDialog({ open, onClose, category }: Props) {
   const tomeKey   = category.custom_fields.find(
     (f) => f.key === 'tome' || f.key === 'volume_number'
   )?.key ?? 'tome'
-  const auteurKey = category.custom_fields.find((f) => f.key === 'auteur')?.key
-  const editeurKey = category.custom_fields.find((f) => f.key === 'editeur')?.key
+
 
   const serieName = selected
     ? (selected.title.english ?? selected.title.romaji)

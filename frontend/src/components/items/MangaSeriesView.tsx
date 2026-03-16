@@ -1,9 +1,7 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { BookOpen, ExternalLink } from 'lucide-react'
 import { useMangaSeries } from '@/hooks/use-items'
-import { searchAniList } from '@/lib/anilist'
-import type { AniListManga } from '@/lib/anilist'
+import { searchAniList, type AniListManga } from '@/lib/anilist'
 import type { MangaSeries } from '@/types'
 
 interface Props {
