@@ -21,6 +21,10 @@ backend/.env.prod
 # Docker
 uploads/
 
+# SQLite
+*.db
+*.sqlite
+
 # OS
 .DS_Store
 Thumbs.db
