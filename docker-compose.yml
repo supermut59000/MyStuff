@@ -1,0 +1,42 @@
+services:
+  mariadb:
+    image: mariadb:11.2
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE:      mystuff
+      MYSQL_USER:          mystuff
+      MYSQL_PASSWORD:      mystuff
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      - ./backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+      - ./backend/migrations/002_add_images.sql:/docker-entrypoint-initdb.d/002_add_images.sql
+    healthcheck:
+      test:     ["CMD", "healthcheck.sh", "--connect"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+
+  backend:
+    build: ./backend
+    ports:
+      - "8056:8000"
+    env_file:
+      - ./backend/.env.local
+    volumes:
+      - uploads-data:/app/uploads
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3056:3000"
+    depends_on:
+      - backend
+
+volumes:
+  mariadb-data:
+  uploads-data:

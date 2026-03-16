@@ -1,0 +1,23 @@
+services:
+  backend:
+    build: ./backend
+    container_name: mystuff-backend
+    ports:
+      - "8056:8000"
+    env_file:
+      - ./backend/.env.prod
+    volumes:
+      - uploads-data:/app/uploads
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: mystuff-frontend
+    ports:
+      - "3056:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  uploads-data:
