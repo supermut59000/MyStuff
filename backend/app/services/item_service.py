@@ -143,7 +143,7 @@ class ItemService:
         logger.info("Item created: id=%d category_id=%d", item.id, item.category_id)
         return item
 
-    def bulk_create(self, items: list[ItemCreate]) -> int:
+    def bulk_create(self, items: list[ItemCreate]) -> list[int]:
         created = []
         for data in items:
             fields = self._get_category_fields(data.category_id)
@@ -164,8 +164,9 @@ class ItemService:
             self.db.add(item)
             created.append(item)
         self.db.commit()
-        logger.info("Bulk created %d items", len(created))
-        return len(created)
+        ids = [item.id for item in created]
+        logger.info("Bulk created %d items: ids=%s", len(ids), ids)
+        return ids
 
     def update_item(self, item_id: int, data: ItemUpdate) -> Item:
         item = self.get_item(item_id)

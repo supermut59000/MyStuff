@@ -1,33 +1,50 @@
-export interface AniListManga {
-  id:         number
-  title:      { romaji: string; english: string | null; native: string }
-  volumes:    number | null
-  coverImage: { medium: string }
-  status:     string  // FINISHED | RELEASING | NOT_YET_RELEASED | CANCELLED | HIATUS
+export interface AniListStaffEdge {
+  role: string
+  node: { name: { full: string; native: string | null } }
 }
+
+export interface AniListManga {
+  id:          number
+  title:       { romaji: string; english: string | null; native: string }
+  volumes:     number | null
+  coverImage:  { medium: string; large: string }
+  status:      string  // FINISHED | RELEASING | NOT_YET_RELEASED | CANCELLED | HIATUS
+  description: string | null
+  staff:       { edges: AniListStaffEdge[] }
+}
+
+/** Extract the primary author name from AniList staff edges */
+export function extractAuthor(staff: AniListStaffEdge[]): string {
+  const roles = ['Story & Art', 'Story', 'Original Story', 'Art']
+  for (const role of roles) {
+    const edge = staff.find((e) => e.role === role)
+    if (edge) return edge.node.name.full
+  }
+  return staff[0]?.node.name.full ?? ''
+}
+
+const MEDIA_FIELDS = `
+  id
+  title { romaji english native }
+  volumes
+  coverImage { medium large }
+  status
+  description(asHtml: false)
+  staff(perPage: 5, sort: RELEVANCE) {
+    edges { role node { name { full native } } }
+  }
+`
 
 const SINGLE_QUERY = `
   query ($search: String) {
-    Media(search: $search, type: MANGA, format: MANGA) {
-      id
-      title { romaji english native }
-      volumes
-      coverImage { medium }
-      status
-    }
+    Media(search: $search, type: MANGA, format: MANGA) { ${MEDIA_FIELDS} }
   }
 `
 
 const LIST_QUERY = `
   query ($search: String) {
     Page(perPage: 8) {
-      media(search: $search, type: MANGA, format: MANGA) {
-        id
-        title { romaji english native }
-        volumes
-        coverImage { medium }
-        status
-      }
+      media(search: $search, type: MANGA, format: MANGA) { ${MEDIA_FIELDS} }
     }
   }
 `

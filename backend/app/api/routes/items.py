@@ -81,8 +81,8 @@ def create_item(data: ItemCreate, db: Session = Depends(get_db)):
 
 @router.post("/bulk-create", status_code=201)
 def bulk_create(data: BulkCreateRequest, db: Session = Depends(get_db)):
-    count = ItemService(db).bulk_create(data.items)
-    return {"created": count}
+    ids = ItemService(db).bulk_create(data.items)
+    return {"created": len(ids), "ids": ids}
 
 
 @router.post("/bulk-delete")
