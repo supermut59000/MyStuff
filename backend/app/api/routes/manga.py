@@ -27,7 +27,7 @@ def get_manga_series(
         .all()
     )
 
-    series_map: dict[str, list[int]] = {}
+    series_map: dict[str, dict] = {}
 
     for item in items:
         serie = (
@@ -38,27 +38,35 @@ def get_manga_series(
         if not serie:
             continue
 
+        if serie not in series_map:
+            series_map[serie] = {"tomes": [], "grouped": None}
+
         tome_raw = (
             item.custom_data.get("tome")
             or item.custom_data.get("volume_number")
         )
 
-        if serie not in series_map:
-            series_map[serie] = []
-
         if tome_raw is not None:
             try:
-                series_map[serie].append(int(tome_raw))
+                series_map[serie]["tomes"].append(int(tome_raw))
             except (ValueError, TypeError):
                 pass
+        else:
+            # No tome number → grouped item representing the whole series
+            series_map[serie]["grouped"] = item
 
     result = []
-    for serie, tomes in sorted(series_map.items()):
-        owned = sorted(set(tomes))
+    for serie, data in sorted(series_map.items()):
+        tomes = sorted(set(data["tomes"]))
+        grouped = data["grouped"]
+        count = len(tomes) if tomes else (grouped.quantity if grouped else 0)
         result.append({
-            "serie":       serie,
-            "owned_tomes": owned,
-            "owned_count": len(owned),
+            "serie":            serie,
+            "owned_tomes":      tomes,
+            "owned_count":      count,
+            "grouped_item_id":  grouped.id if grouped else None,
+            "grouped_quantity": grouped.quantity if grouped else None,
+            "grouped_value":    float(grouped.value) if grouped and grouped.value is not None else None,
         })
 
     return result

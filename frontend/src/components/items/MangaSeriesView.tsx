@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { BookOpen, ExternalLink, Plus, Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useMangaSeries, useBulkCreateItems } from '@/hooks/use-items'
+import { useMangaSeries, useBulkCreateItems, useUpdateItem } from '@/hooks/use-items'
 import { searchAniList, extractAuthor } from '@/lib/anilist'
 import { uploadImage } from '@/lib/api'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -29,17 +29,31 @@ interface ManageProps {
 }
 
 function ManageSeriesDialog({ open, onClose, series, anilist, category }: ManageProps) {
-  const bulkCreate = useBulkCreateItems()
+  const isGrouped = series.grouped_item_id !== null
 
+  // ── Grouped mode state ──────────────────────────────────────────────────
+  const currentQty       = series.grouped_quantity ?? series.owned_count
+  const currentPriceUnit = series.grouped_value && currentQty
+    ? parseFloat((series.grouped_value / currentQty).toFixed(2))
+    : 0
+  const [newQty,   setNewQty]   = useState(String(currentQty))
+  const [newPrice, setNewPrice] = useState(String(currentPriceUnit || ''))
+  const updateItem = useUpdateItem()
+
+  // ── Individual mode state ───────────────────────────────────────────────
+  const bulkCreate = useBulkCreateItems()
   const total = anilist?.volumes ?? null
   const missing: number[] = total
     ? Array.from({ length: total }, (_, i) => i + 1).filter(
         (t) => !series.owned_tomes.includes(t)
       )
     : []
-
   const [extraInput, setExtraInput] = useState('')
-  const [toAdd, setToAdd] = useState<Set<number>>(new Set())
+  const [toAdd, setToAdd]           = useState<Set<number>>(new Set())
+
+  const serieKey  = category.custom_fields.find((f) => f.key === 'serie' || f.key === 'series_name')?.key ?? 'serie'
+  const tomeKey   = category.custom_fields.find((f) => f.key === 'tome'  || f.key === 'volume_number')?.key  ?? 'tome'
+  const auteurKey = category.custom_fields.find((f) => f.key === 'auteur' || f.key === 'author')?.key ?? null
 
   const toggleTome = (n: number) => {
     setToAdd((prev) => {
@@ -61,13 +75,28 @@ function ManageSeriesDialog({ open, onClose, series, anilist, category }: Manage
     setExtraInput('')
   }
 
-  const serieKey  = category.custom_fields.find((f) => f.key === 'serie' || f.key === 'series_name')?.key ?? 'serie'
-  const tomeKey   = category.custom_fields.find((f) => f.key === 'tome' || f.key === 'volume_number')?.key ?? 'tome'
-  const auteurKey = category.custom_fields.find((f) => f.key === 'auteur' || f.key === 'author')?.key ?? null
+  // ── Grouped save ────────────────────────────────────────────────────────
+  const handleSaveGrouped = async () => {
+    const qty   = parseInt(newQty) || currentQty
+    const price = parseFloat(newPrice) || 0
+    try {
+      await updateItem.mutateAsync({
+        id:   series.grouped_item_id!,
+        data: {
+          quantity: qty,
+          value:    price > 0 ? String(price * qty) : null,
+        },
+      })
+      toast.success(`Série mise à jour : ${qty} tome${qty > 1 ? 's' : ''}`)
+      onClose()
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erreur')
+    }
+  }
 
-  const handleSave = async () => {
+  // ── Individual save ─────────────────────────────────────────────────────
+  const handleSaveIndividual = async () => {
     if (toAdd.size === 0) { onClose(); return }
-
     const author = anilist?.staff?.edges?.length ? extractAuthor(anilist.staff.edges) : ''
     const baseCustom: Record<string, unknown> = { [serieKey]: series.serie }
     if (auteurKey && author) baseCustom[auteurKey] = author
@@ -84,10 +113,8 @@ function ManageSeriesDialog({ open, onClose, series, anilist, category }: Manage
       deployment_status: null,
       custom_data:       { ...baseCustom, [tomeKey]: tome },
     }))
-
     try {
       const result = await bulkCreate.mutateAsync(items)
-      // Upload cover to newly created items
       if (anilist?.coverImage?.large && result.ids?.length) {
         try {
           const res = await fetch(anilist.coverImage.large)
@@ -106,7 +133,9 @@ function ManageSeriesDialog({ open, onClose, series, anilist, category }: Manage
     }
   }
 
-  const allToAdd = [...toAdd].sort((a, b) => a - b)
+  const qty     = parseInt(newQty) || currentQty
+  const price   = parseFloat(newPrice) || 0
+  const newTotal = price > 0 ? price * qty : null
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -118,106 +147,144 @@ function ManageSeriesDialog({ open, onClose, series, anilist, category }: Manage
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5">
-          {/* Owned summary */}
-          <div>
-            <p className="text-sm font-medium mb-2 text-muted-foreground">
-              Possédés ({series.owned_count}{total ? ` / ${total}` : ''})
+        {/* ── Grouped mode ── */}
+        {isGrouped && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Cette série est enregistrée comme un item groupé.
             </p>
-            <div className="flex flex-wrap gap-1">
-              {series.owned_tomes.map((t) => (
-                <span
-                  key={t}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded text-[10px] font-semibold bg-primary/10 text-primary"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
 
-          {/* Missing tomes to add */}
-          {missing.length > 0 && (
-            <div>
-              <p className="text-sm font-medium mb-2">
-                Ajouter des tomes manquants
-                <span className="ml-1 font-normal text-muted-foreground">
-                  (cliquez pour sélectionner)
-                </span>
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {missing.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => toggleTome(t)}
-                    className={cn(
-                      'h-7 w-7 rounded text-xs font-semibold transition-colors',
-                      toAdd.has(t)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-destructive/10 text-destructive hover:bg-destructive/20'
-                    )}
-                  >
-                    {t}
-                  </button>
-                ))}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Nombre de tomes</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={newQty}
+                  onChange={(e) => setNewQty(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Prix par tome (€)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  placeholder="7.50"
+                />
               </div>
             </div>
-          )}
 
-          {/* Extra tomes input (beyond total or unknown series) */}
-          <div>
-            <p className="text-sm font-medium mb-2">
-              {missing.length === 0 ? 'Ajouter des tomes' : 'Autres tomes'}
-              <span className="ml-1 font-normal text-muted-foreground text-xs">(ex: 13, 15-17)</span>
-            </p>
-            <div className="flex gap-2">
-              <Input
-                value={extraInput}
-                onChange={(e) => setExtraInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addExtra()}
-                placeholder="13, 15-17…"
-                className="flex-1"
-              />
-              <Button variant="outline" size="sm" onClick={addExtra} disabled={!extraInput.trim()}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
+            {newTotal !== null && (
+              <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+                Valeur totale : <strong>{newTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</strong>
+              </div>
+            )}
+
+            <Button
+              className="w-full"
+              disabled={updateItem.isPending}
+              onClick={handleSaveGrouped}
+            >
+              {updateItem.isPending ? 'Mise à jour…' : 'Enregistrer'}
+            </Button>
           </div>
+        )}
 
-          {/* Tomes to be created */}
-          {allToAdd.length > 0 && (
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <p className="text-sm font-medium mb-2">
-                À créer ({allToAdd.length} tome{allToAdd.length > 1 ? 's' : ''})
+        {/* ── Individual mode ── */}
+        {!isGrouped && (
+          <div className="space-y-5">
+            <div>
+              <p className="text-sm font-medium mb-2 text-muted-foreground">
+                Possédés ({series.owned_count}{total ? ` / ${total}` : ''})
               </p>
               <div className="flex flex-wrap gap-1">
-                {allToAdd.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => toggleTome(t)}
-                    className="inline-flex h-6 w-6 items-center justify-center rounded text-[10px] font-semibold bg-primary text-primary-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                    title="Cliquer pour retirer"
-                  >
+                {series.owned_tomes.map((t) => (
+                  <span key={t} className="inline-flex h-6 w-6 items-center justify-center rounded text-[10px] font-semibold bg-primary/10 text-primary">
                     {t}
-                  </button>
+                  </span>
                 ))}
               </div>
             </div>
-          )}
 
-          <Button
-            className="w-full"
-            disabled={toAdd.size === 0 || bulkCreate.isPending}
-            onClick={handleSave}
-          >
-            {bulkCreate.isPending
-              ? 'Création…'
-              : toAdd.size === 0
-                ? 'Aucun tome à ajouter'
-                : `Ajouter ${toAdd.size} tome${toAdd.size > 1 ? 's' : ''}`
-            }
-          </Button>
-        </div>
+            {missing.length > 0 && (
+              <div>
+                <p className="text-sm font-medium mb-2">
+                  Tomes manquants
+                  <span className="ml-1 font-normal text-muted-foreground">(cliquez pour sélectionner)</span>
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {missing.map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => toggleTome(t)}
+                      className={cn(
+                        'h-7 w-7 rounded text-xs font-semibold transition-colors',
+                        toAdd.has(t)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-destructive/10 text-destructive hover:bg-destructive/20'
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <p className="text-sm font-medium mb-2">
+                {missing.length === 0 ? 'Ajouter des tomes' : 'Autres tomes'}
+                <span className="ml-1 font-normal text-muted-foreground text-xs">(ex: 13, 15-17)</span>
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  value={extraInput}
+                  onChange={(e) => setExtraInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addExtra()}
+                  placeholder="13, 15-17…"
+                  className="flex-1"
+                />
+                <Button variant="outline" size="sm" onClick={addExtra} disabled={!extraInput.trim()}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {toAdd.size > 0 && (
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <p className="text-sm font-medium mb-2">À créer ({toAdd.size})</p>
+                <div className="flex flex-wrap gap-1">
+                  {[...toAdd].sort((a, b) => a - b).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => toggleTome(t)}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded text-[10px] font-semibold bg-primary text-primary-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                      title="Retirer"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Button
+              className="w-full"
+              disabled={toAdd.size === 0 || bulkCreate.isPending}
+              onClick={handleSaveIndividual}
+            >
+              {bulkCreate.isPending
+                ? 'Création…'
+                : toAdd.size === 0
+                  ? 'Aucun tome à ajouter'
+                  : `Ajouter ${toAdd.size} tome${toAdd.size > 1 ? 's' : ''}`
+              }
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

@@ -62,9 +62,12 @@ export interface CategoryStat {
 }
 
 export interface MangaSeries {
-  serie:       string
-  owned_tomes: number[]
-  owned_count: number
+  serie:            string
+  owned_tomes:      number[]
+  owned_count:      number
+  grouped_item_id:  number | null
+  grouped_quantity: number | null
+  grouped_value:    number | null
 }
 
 export interface SearchResult {
