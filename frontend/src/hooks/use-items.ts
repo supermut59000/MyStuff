@@ -60,7 +60,7 @@ export function useDashboardStats() {
 export function useCreateItem() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: Omit<Item, 'id' | 'created_at' | 'updated_at' | 'lent_to' | 'lent_at' | 'read_up_to'>) =>
+    mutationFn: (data: Omit<Item, 'id' | 'created_at' | 'updated_at' | 'lent_to' | 'lent_at' | 'read_up_to' | 'deleted_at'>) =>
       api.post<Item>('/api/items/', data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['items'] })
