@@ -3,14 +3,17 @@ import { api, uploadImage } from '@/lib/api'
 import type { Item, ItemListResponse, DashboardStats, MangaSeries, SearchResult } from '@/types'
 
 export interface ItemFilters {
-  page?:        number
-  per_page?:    number
-  category_id?: number | null
-  is_owned?:    boolean | null
-  condition?:   string | null
-  search?:      string
-  sort?:        string
-  order?:       'asc' | 'desc'
+  page?:              number
+  per_page?:          number
+  category_id?:       number | null
+  is_owned?:          boolean | null
+  condition?:         string | null
+  search?:            string
+  sort?:              string
+  order?:             'asc' | 'desc'
+  reading_status?:    string | null
+  wear_status?:       string | null
+  deployment_status?: string | null
 }
 
 function buildQuery(filters: ItemFilters): string {
@@ -19,10 +22,13 @@ function buildQuery(filters: ItemFilters): string {
   if (filters.per_page)    params.set('per_page',    String(filters.per_page))
   if (filters.category_id != null) params.set('category_id', String(filters.category_id))
   if (filters.is_owned != null)    params.set('is_owned',    String(filters.is_owned))
-  if (filters.condition)   params.set('condition',   filters.condition)
-  if (filters.search)      params.set('search',      filters.search)
-  if (filters.sort)        params.set('sort',        filters.sort)
-  if (filters.order)       params.set('order',       filters.order)
+  if (filters.condition)           params.set('condition',   filters.condition)
+  if (filters.search)              params.set('search',      filters.search)
+  if (filters.sort)                params.set('sort',        filters.sort)
+  if (filters.order)               params.set('order',       filters.order)
+  if (filters.reading_status)      params.set('reading_status',    filters.reading_status)
+  if (filters.wear_status)         params.set('wear_status',       filters.wear_status)
+  if (filters.deployment_status)   params.set('deployment_status', filters.deployment_status)
   const qs = params.toString()
   return qs ? `?${qs}` : ''
 }
@@ -175,5 +181,48 @@ export function useGlobalSearch(q: string) {
     queryFn: () => api.get<SearchResult[]>(`/api/search/?q=${encodeURIComponent(q)}&limit=20`),
     enabled: q.trim().length >= 2,
     staleTime: 10_000,
+  })
+}
+
+export function useTrashItems() {
+  return useQuery({
+    queryKey: ['trash'],
+    queryFn: () => api.get<Item[]>('/api/items/trash'),
+    staleTime: 0,
+  })
+}
+
+export function useRestoreItem() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.post<Item>(`/api/items/${id}/restore`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['trash'] })
+      qc.invalidateQueries({ queryKey: ['items'] })
+      qc.invalidateQueries({ queryKey: ['categories'] })
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    },
+  })
+}
+
+export function usePermanentDeleteItem() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/api/items/${id}/permanent`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['trash'] })
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    },
+  })
+}
+
+export function useEmptyTrash() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.delete<{ deleted: number }>('/api/items/trash/empty'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['trash'] })
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    },
   })
 }

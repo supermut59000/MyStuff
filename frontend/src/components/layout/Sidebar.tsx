@@ -1,4 +1,4 @@
-import { Heart, LayoutDashboard, Plus, Settings } from 'lucide-react'
+import { Heart, LayoutDashboard, Plus, Settings, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCategories } from '@/hooks/use-categories'
 import { Badge } from '@/components/ui/badge'
@@ -8,11 +8,13 @@ import type { Category } from '@/types'
 interface SidebarProps {
   selectedCategoryId: number | null
   showWishlist:       boolean
+  showTrash:          boolean
   mobileOpen:         boolean
   onClose:            () => void
   onSelectCategory:   (id: number) => void
   onSelectDashboard:  () => void
   onSelectWishlist:   () => void
+  onSelectTrash:      () => void
   onNewCategory:      () => void
   onEditCategory:     (cat: Category) => void
 }
@@ -20,17 +22,19 @@ interface SidebarProps {
 export function Sidebar({
   selectedCategoryId,
   showWishlist,
+  showTrash,
   mobileOpen,
   onClose,
   onSelectCategory,
   onSelectDashboard,
   onSelectWishlist,
+  onSelectTrash,
   onNewCategory,
   onEditCategory,
 }: SidebarProps) {
   const { data: categories = [], isLoading } = useCategories()
 
-  const isDashboard = selectedCategoryId === null && !showWishlist
+  const isDashboard = selectedCategoryId === null && !showWishlist && !showTrash
 
   const nav = (fn: () => void) => { fn(); onClose() }
 
@@ -125,8 +129,8 @@ export function Sidebar({
 
         <Separator />
 
-        {/* Wishlist */}
-        <div className="p-3">
+        {/* Wishlist + Trash */}
+        <div className="p-3 space-y-0.5">
           <button
             onClick={() => nav(onSelectWishlist)}
             className={cn(
@@ -138,6 +142,18 @@ export function Sidebar({
           >
             <Heart className="h-4 w-4" />
             Wishlist
+          </button>
+          <button
+            onClick={() => nav(onSelectTrash)}
+            className={cn(
+              'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+              showTrash
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+            )}
+          >
+            <Trash2 className="h-4 w-4" />
+            Trash
           </button>
         </div>
       </aside>

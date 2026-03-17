@@ -44,6 +44,7 @@ export interface Item {
   lent_to:           string | null
   lent_at:           string | null
   read_up_to:        number | null
+  deleted_at:        string | null
   created_at:        string
   updated_at:        string
 }

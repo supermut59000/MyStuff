@@ -2,18 +2,23 @@ import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { cn } from '@/lib/utils'
+import type { Category } from '@/types'
 
 export interface Filters {
-  search:    string
-  condition: string
-  owned:     'all' | 'owned' | 'wishlist'
-  sort:      string
-  order:     'asc' | 'desc'
+  search:            string
+  condition:         string
+  owned:             'all' | 'owned' | 'wishlist'
+  sort:              string
+  order:             'asc' | 'desc'
+  reading_status:    string
+  wear_status:       string
+  deployment_status: string
 }
 
 interface ItemFiltersProps {
   filters:   Filters
   onChange:  (f: Filters) => void
+  category?: Category | null
 }
 
 const OWNED_TABS: { value: Filters['owned']; label: string }[] = [
@@ -22,9 +27,20 @@ const OWNED_TABS: { value: Filters['owned']; label: string }[] = [
   { value: 'wishlist', label: 'Wishlist' },
 ]
 
-export function ItemFilters({ filters, onChange }: ItemFiltersProps) {
+function getCategoryStatusType(category: Category | null | undefined): 'reading' | 'wear' | 'deployment' | null {
+  if (!category) return null
+  const name = category.name.toLowerCase()
+  if (name === 'manga' || name === 'livres') return 'reading'
+  if (name === 'vêtements' || name === 'vetements') return 'wear'
+  if (name === 'tech') return 'deployment'
+  return null
+}
+
+export function ItemFilters({ filters, onChange, category }: ItemFiltersProps) {
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     onChange({ ...filters, [key]: value })
+
+  const statusType = getCategoryStatusType(category)
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -69,6 +85,53 @@ export function ItemFilters({ filters, onChange }: ItemFiltersProps) {
         <option value="fair">Fair</option>
         <option value="poor">Poor</option>
       </NativeSelect>
+
+      {/* Reading status — Manga / Livres */}
+      {statusType === 'reading' && (
+        <NativeSelect
+          value={filters.reading_status}
+          onChange={(e) => set('reading_status', e.target.value)}
+          className="w-40"
+        >
+          <option value="">All statuses</option>
+          <option value="owned_unread">Unread</option>
+          <option value="reading">Reading</option>
+          <option value="completed">Completed</option>
+          <option value="plan_to_read">Plan to read</option>
+        </NativeSelect>
+      )}
+
+      {/* Wear status — Vêtements */}
+      {statusType === 'wear' && (
+        <NativeSelect
+          value={filters.wear_status}
+          onChange={(e) => set('wear_status', e.target.value)}
+          className="w-36"
+        >
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="stored">Stored</option>
+          <option value="to_sell">To sell</option>
+          <option value="to_donate">To donate</option>
+        </NativeSelect>
+      )}
+
+      {/* Deployment status — Tech */}
+      {statusType === 'deployment' && (
+        <NativeSelect
+          value={filters.deployment_status}
+          onChange={(e) => set('deployment_status', e.target.value)}
+          className="w-40"
+        >
+          <option value="">All statuses</option>
+          <option value="in_use_pc">In use (PC)</option>
+          <option value="in_use_server">In use (Server)</option>
+          <option value="in_use_other">In use (Other)</option>
+          <option value="storage">Storage</option>
+          <option value="to_sell">To sell</option>
+          <option value="broken">Broken</option>
+        </NativeSelect>
+      )}
 
       {/* Sort */}
       <NativeSelect

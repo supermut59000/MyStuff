@@ -1,6 +1,7 @@
 import csv
 import io
 import logging
+from datetime import datetime
 from math import ceil
 from typing import Any, Optional
 
@@ -82,12 +83,15 @@ class ItemService:
         search: Optional[str] = None,
         sort: str = "created_at",
         order: str = "desc",
+        reading_status: Optional[str] = None,
+        wear_status: Optional[str] = None,
+        deployment_status: Optional[str] = None,
     ) -> ItemListResponse:
         per_page = min(per_page, 100)
         sort = sort if sort in ALLOWED_SORT_FIELDS else "created_at"
         order = "asc" if order == "asc" else "desc"
 
-        q = self.db.query(Item)
+        q = self.db.query(Item).filter(Item.deleted_at.is_(None))
 
         if category_id is not None:
             q = q.filter(Item.category_id == category_id)
@@ -97,6 +101,12 @@ class ItemService:
             q = q.filter(Item.condition == condition)
         if search:
             q = q.filter(Item.name.ilike(f"%{search}%"))
+        if reading_status:
+            q = q.filter(Item.reading_status == reading_status)
+        if wear_status:
+            q = q.filter(Item.wear_status == wear_status)
+        if deployment_status:
+            q = q.filter(Item.deployment_status == deployment_status)
 
         sort_col = getattr(Item, sort)
         q = q.order_by(sort_col.asc() if order == "asc" else sort_col.desc())
@@ -114,7 +124,11 @@ class ItemService:
         )
 
     def get_item(self, item_id: int) -> Item:
-        item = self.db.query(Item).filter(Item.id == item_id).first()
+        item = (
+            self.db.query(Item)
+            .filter(Item.id == item_id, Item.deleted_at.is_(None))
+            .first()
+        )
         if not item:
             logger.warning("Item %d not found", item_id)
             raise HTTPException(status_code=404, detail=f"Item {item_id} not found")
@@ -185,10 +199,106 @@ class ItemService:
         return item
 
     def delete_item(self, item_id: int) -> None:
+        """Soft-delete: sets deleted_at timestamp."""
         item = self.get_item(item_id)
+        item.deleted_at = datetime.utcnow()
+        self.db.commit()
+        logger.info("Item soft-deleted: id=%d", item_id)
+
+    # ── Trash ────────────────────────────────────────────────────────────────
+
+    def list_trash(self) -> list[Item]:
+        return (
+            self.db.query(Item)
+            .filter(Item.deleted_at.isnot(None))
+            .order_by(Item.deleted_at.desc())
+            .all()
+        )
+
+    def restore_item(self, item_id: int) -> Item:
+        item = (
+            self.db.query(Item)
+            .filter(Item.id == item_id, Item.deleted_at.isnot(None))
+            .first()
+        )
+        if not item:
+            raise HTTPException(status_code=404, detail=f"Item {item_id} not found in trash")
+        item.deleted_at = None
+        self.db.commit()
+        self.db.refresh(item)
+        logger.info("Item restored: id=%d", item_id)
+        return item
+
+    def permanent_delete_item(self, item_id: int) -> None:
+        """Hard-delete a trashed item. Also removes its image file."""
+        item = (
+            self.db.query(Item)
+            .filter(Item.id == item_id, Item.deleted_at.isnot(None))
+            .first()
+        )
+        if not item:
+            raise HTTPException(status_code=404, detail=f"Item {item_id} not found in trash")
+        if item.image_path:
+            import os
+            path = os.path.join("/app/uploads", item.image_path)
+            if os.path.exists(path):
+                os.remove(path)
         self.db.delete(item)
         self.db.commit()
-        logger.info("Item deleted: id=%d", item_id)
+        logger.info("Item permanently deleted: id=%d", item_id)
+
+    def empty_trash(self) -> int:
+        """Permanently delete all trashed items."""
+        items = self.db.query(Item).filter(Item.deleted_at.isnot(None)).all()
+        count = len(items)
+        for item in items:
+            if item.image_path:
+                import os
+                path = os.path.join("/app/uploads", item.image_path)
+                if os.path.exists(path):
+                    os.remove(path)
+            self.db.delete(item)
+        self.db.commit()
+        logger.info("Trash emptied: %d items permanently deleted", count)
+        return count
+
+    # ── Bulk ─────────────────────────────────────────────────────────────────
+
+    def bulk_delete(self, ids: list[int]) -> int:
+        """Soft-delete multiple items."""
+        now = datetime.utcnow()
+        count = (
+            self.db.query(Item)
+            .filter(Item.id.in_(ids), Item.deleted_at.is_(None))
+            .update({"deleted_at": now}, synchronize_session=False)
+        )
+        self.db.commit()
+        logger.info("Bulk soft-deleted %d items", count)
+        return count
+
+    def bulk_move(self, ids: list[int], category_id: int) -> int:
+        cat = self.db.query(Category).filter(Category.id == category_id).first()
+        if not cat:
+            raise HTTPException(status_code=404, detail=f"Category {category_id} not found")
+        count = (
+            self.db.query(Item)
+            .filter(Item.id.in_(ids), Item.deleted_at.is_(None))
+            .update({"category_id": category_id}, synchronize_session=False)
+        )
+        self.db.commit()
+        return count
+
+    # ── Lending ──────────────────────────────────────────────────────────────
+
+    def get_lent_items(self) -> list[Item]:
+        return (
+            self.db.query(Item)
+            .filter(Item.lent_to.isnot(None), Item.deleted_at.is_(None))
+            .order_by(Item.lent_at)
+            .all()
+        )
+
+    # ── CSV ──────────────────────────────────────────────────────────────────
 
     def export_csv(
         self,
@@ -226,30 +336,7 @@ class ItemService:
             ])
         return output.getvalue()
 
-    def get_lent_items(self) -> list[Item]:
-        return (
-            self.db.query(Item)
-            .filter(Item.lent_to.isnot(None))
-            .order_by(Item.lent_at)
-            .all()
-        )
-
-    def bulk_delete(self, ids: list[int]) -> int:
-        count = self.db.query(Item).filter(Item.id.in_(ids)).delete(synchronize_session=False)
-        self.db.commit()
-        logger.info("Bulk deleted %d items", count)
-        return count
-
-    def bulk_move(self, ids: list[int], category_id: int) -> int:
-        # Verify category exists
-        cat = self.db.query(Category).filter(Category.id == category_id).first()
-        if not cat:
-            raise HTTPException(status_code=404, detail=f"Category {category_id} not found")
-        count = self.db.query(Item).filter(Item.id.in_(ids)).update(
-            {"category_id": category_id}, synchronize_session=False
-        )
-        self.db.commit()
-        return count
+    # ── Images ───────────────────────────────────────────────────────────────
 
     def upload_image(self, item_id: int, file_data: bytes, content_type: str) -> Item:
         import uuid
@@ -263,18 +350,15 @@ class ItemService:
         if len(file_data) > 5 * 1024 * 1024:
             raise HTTPException(status_code=422, detail="File too large. Max 5 MB.")
 
-        # Delete old image if exists
         if item.image_path:
             old_path = os.path.join("/app/uploads", item.image_path)
             if os.path.exists(old_path):
                 os.remove(old_path)
 
-        # Resize to max 1200x1200
         img = Image.open(_io.BytesIO(file_data))
         img = img.convert("RGB")
         img.thumbnail((1200, 1200), Image.LANCZOS)
 
-        # Save
         item_dir = os.path.join("/app/uploads", str(item_id))
         os.makedirs(item_dir, exist_ok=True)
         filename = f"{uuid.uuid4().hex}.jpg"

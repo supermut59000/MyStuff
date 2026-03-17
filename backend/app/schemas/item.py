@@ -50,6 +50,7 @@ class ItemUpdate(BaseModel):
 class ItemResponse(ItemBase):
     id:          int
     category_id: int
+    deleted_at:  Optional[datetime] = None
     created_at:  datetime
     updated_at:  datetime
 

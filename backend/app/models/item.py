@@ -47,6 +47,10 @@ class Item(Base):
     lent_at:    Mapped[date | None] = mapped_column(Date, nullable=True)
     read_up_to: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, default=None
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )

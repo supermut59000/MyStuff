@@ -50,6 +50,16 @@ def export_csv(
     )
 
 
+@router.get("/trash", response_model=list[ItemResponse])
+def get_trash(db: Session = Depends(get_db)):
+    return ItemService(db).list_trash()
+
+
+@router.get("/lent", response_model=list[ItemResponse])
+def get_lent_items(db: Session = Depends(get_db)):
+    return ItemService(db).get_lent_items()
+
+
 @router.get("/", response_model=ItemListResponse)
 def list_items(
     page: int = Query(1, ge=1),
@@ -60,6 +70,9 @@ def list_items(
     search: Optional[str] = Query(None),
     sort: str = Query("created_at"),
     order: str = Query("desc"),
+    reading_status: Optional[str] = Query(None),
+    wear_status: Optional[str] = Query(None),
+    deployment_status: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     return ItemService(db).list_items(
@@ -71,6 +84,9 @@ def list_items(
         search=search,
         sort=sort,
         order=order,
+        reading_status=reading_status,
+        wear_status=wear_status,
+        deployment_status=deployment_status,
     )
 
 
@@ -97,11 +113,6 @@ def bulk_move(data: BulkMoveRequest, db: Session = Depends(get_db)):
     return {"moved": count}
 
 
-@router.get("/lent", response_model=list[ItemResponse])
-def get_lent_items(db: Session = Depends(get_db)):
-    return ItemService(db).get_lent_items()
-
-
 @router.get("/{item_id}", response_model=ItemResponse)
 def get_item(item_id: int, db: Session = Depends(get_db)):
     return ItemService(db).get_item(item_id)
@@ -115,6 +126,22 @@ def update_item(item_id: int, data: ItemUpdate, db: Session = Depends(get_db)):
 @router.delete("/{item_id}", status_code=204)
 def delete_item(item_id: int, db: Session = Depends(get_db)):
     ItemService(db).delete_item(item_id)
+
+
+@router.post("/{item_id}/restore", response_model=ItemResponse)
+def restore_item(item_id: int, db: Session = Depends(get_db)):
+    return ItemService(db).restore_item(item_id)
+
+
+@router.delete("/{item_id}/permanent", status_code=204)
+def permanent_delete_item(item_id: int, db: Session = Depends(get_db)):
+    ItemService(db).permanent_delete_item(item_id)
+
+
+@router.delete("/trash/empty", status_code=200)
+def empty_trash(db: Session = Depends(get_db)):
+    count = ItemService(db).empty_trash()
+    return {"deleted": count}
 
 
 @router.post("/{item_id}/image", response_model=ItemResponse)

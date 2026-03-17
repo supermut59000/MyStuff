@@ -29,6 +29,7 @@ interface ItemGridProps {
 
 const DEFAULT_FILTERS: Filters = {
   search: '', condition: '', owned: 'all', sort: 'created_at', order: 'desc',
+  reading_status: '', wear_status: '', deployment_status: '',
 }
 
 export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
@@ -54,12 +55,15 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
   const queryFilters = {
     page,
     per_page: 20,
-    category_id:  categoryId ?? undefined,
-    is_owned:     filters.owned === 'all' ? undefined : filters.owned === 'owned',
-    condition:    filters.condition || undefined,
-    search:       debouncedSearch || undefined,
-    sort:         filters.sort,
-    order:        filters.order,
+    category_id:        categoryId ?? undefined,
+    is_owned:           filters.owned === 'all' ? undefined : filters.owned === 'owned',
+    condition:          filters.condition || undefined,
+    search:             debouncedSearch || undefined,
+    sort:               filters.sort,
+    order:              filters.order,
+    reading_status:     filters.reading_status || undefined,
+    wear_status:        filters.wear_status || undefined,
+    deployment_status:  filters.deployment_status || undefined,
   }
 
   const { data, isLoading } = useItems(queryFilters)
@@ -171,7 +175,7 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
       )}
 
       {/* Filters */}
-      {!seriesView && <ItemFilters filters={filters} onChange={handleFilterChange} />}
+      {!seriesView && <ItemFilters filters={filters} onChange={handleFilterChange} category={category} />}
 
       {/* Bulk action bar */}
       {!seriesView && selectMode && (
