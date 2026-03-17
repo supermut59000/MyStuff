@@ -39,7 +39,7 @@ def get_manga_series(
             continue
 
         if serie not in series_map:
-            series_map[serie] = {"tomes": [], "grouped": None}
+            series_map[serie] = {"tomes": [], "grouped": None, "individual_items": []}
 
         tome_raw = (
             item.custom_data.get("tome")
@@ -51,6 +51,7 @@ def get_manga_series(
                 series_map[serie]["tomes"].append(int(tome_raw))
             except (ValueError, TypeError):
                 pass
+            series_map[serie]["individual_items"].append(item)
         else:
             # No tome number → grouped item representing the whole series
             series_map[serie]["grouped"] = item
@@ -60,6 +61,10 @@ def get_manga_series(
         tomes = sorted(set(data["tomes"]))
         grouped = data["grouped"]
         count = len(tomes) if tomes else (grouped.quantity if grouped else 0)
+        completed_count = sum(
+            1 for it in data["individual_items"] if it.reading_status == "completed"
+        )
+        read_up_to = grouped.read_up_to if grouped else None
         result.append({
             "serie":            serie,
             "owned_tomes":      tomes,
@@ -67,6 +72,8 @@ def get_manga_series(
             "grouped_item_id":  grouped.id if grouped else None,
             "grouped_quantity": grouped.quantity if grouped else None,
             "grouped_value":    float(grouped.value) if grouped and grouped.value is not None else None,
+            "read_up_to":       read_up_to,
+            "completed_count":  completed_count,
         })
 
     return result

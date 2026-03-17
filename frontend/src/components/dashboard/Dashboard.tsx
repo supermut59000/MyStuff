@@ -1,7 +1,9 @@
-import { Package, Heart, TrendingUp } from 'lucide-react'
-import { useDashboardStats } from '@/hooks/use-items'
+import { Package, Heart, TrendingUp, Share2, RotateCcw } from 'lucide-react'
+import { toast } from 'sonner'
+import { useDashboardStats, useLentItems, useUpdateItem } from '@/hooks/use-items'
 import { CategoryCard } from '@/components/categories/CategoryCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 interface DashboardProps {
   onSelectCategory: (id: number) => void
@@ -9,6 +11,17 @@ interface DashboardProps {
 
 export function Dashboard({ onSelectCategory }: DashboardProps) {
   const { data: stats, isLoading } = useDashboardStats()
+  const { data: lentItems = [] }   = useLentItems()
+  const updateItem = useUpdateItem()
+
+  const handleReturn = async (id: number, name: string) => {
+    try {
+      await updateItem.mutateAsync({ id, data: { lent_to: null, lent_at: null } })
+      toast.success(`"${name}" récupéré !`)
+    } catch {
+      toast.error('Erreur')
+    }
+  }
 
   if (isLoading) {
     return (
@@ -68,6 +81,39 @@ export function Dashboard({ onSelectCategory }: DashboardProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Lent items */}
+      {lentItems.length > 0 && (
+        <div>
+          <h2 className="mb-4 text-lg font-semibold flex items-center gap-2">
+            <Share2 className="h-4 w-4 text-orange-500" />
+            Prêts en cours
+            <span className="text-sm font-normal text-muted-foreground">({lentItems.length})</span>
+          </h2>
+          <div className="space-y-2">
+            {lentItems.map((item) => (
+              <div key={item.id} className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium">{item.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Prêté à <span className="text-orange-500 font-medium">{item.lent_to}</span>
+                    {item.lent_at && ` · le ${new Date(item.lent_at).toLocaleDateString('fr-FR')}`}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleReturn(item.id, item.name)}
+                  disabled={updateItem.isPending}
+                >
+                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                  Récupéré
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Category cards */}
       <div>

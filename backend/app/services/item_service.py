@@ -226,6 +226,14 @@ class ItemService:
             ])
         return output.getvalue()
 
+    def get_lent_items(self) -> list[Item]:
+        return (
+            self.db.query(Item)
+            .filter(Item.lent_to.isnot(None))
+            .order_by(Item.lent_at)
+            .all()
+        )
+
     def bulk_delete(self, ids: list[int]) -> int:
         count = self.db.query(Item).filter(Item.id.in_(ids)).delete(synchronize_session=False)
         self.db.commit()

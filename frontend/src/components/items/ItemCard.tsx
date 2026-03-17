@@ -1,4 +1,4 @@
-import { Heart } from 'lucide-react'
+import { Heart, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getImageUrl } from '@/lib/api'
 import type { Item } from '@/types'
@@ -25,6 +25,13 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
       {!item.is_owned && (
         <span className="absolute right-3 top-3 text-rose-400">
           <Heart className="h-4 w-4 fill-current" />
+        </span>
+      )}
+
+      {/* Lent indicator */}
+      {item.lent_to && (
+        <span className="absolute left-3 top-3 text-orange-400" title={`Prêté à ${item.lent_to}`}>
+          <Share2 className="h-3.5 w-3.5" />
         </span>
       )}
 

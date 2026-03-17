@@ -41,6 +41,9 @@ export interface Item {
   wear_status:       WearStatus | null
   deployment_status: DeploymentStatus | null
   image_path:        string | null
+  lent_to:           string | null
+  lent_at:           string | null
+  read_up_to:        number | null
   created_at:        string
   updated_at:        string
 }
@@ -69,6 +72,8 @@ export interface MangaSeries {
   grouped_item_id:  number | null
   grouped_quantity: number | null
   grouped_value:    number | null
+  read_up_to:       number | null
+  completed_count:  number
 }
 
 export interface SearchResult {

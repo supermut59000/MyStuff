@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Literal, Optional
 
@@ -22,6 +22,9 @@ class ItemBase(BaseModel):
     wear_status:       Optional[WearStatusType] = None
     deployment_status: Optional[DeploymentStatusType] = None
     image_path:        Optional[str] = None
+    lent_to:           Optional[str] = None
+    lent_at:           Optional[date] = None
+    read_up_to:        Optional[int] = None
 
 
 class ItemCreate(ItemBase):
@@ -39,6 +42,9 @@ class ItemUpdate(BaseModel):
     reading_status:    Optional[ReadingStatusType] = None
     wear_status:       Optional[WearStatusType] = None
     deployment_status: Optional[DeploymentStatusType] = None
+    lent_to:           Optional[str] = None
+    lent_at:           Optional[date] = None
+    read_up_to:        Optional[int] = None
 
 
 class ItemResponse(ItemBase):

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { BookOpen, ExternalLink, Plus, Settings2 } from 'lucide-react'
+import { Bell, BookOpen, ExternalLink, Plus, Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useMangaSeries, useBulkCreateItems, useUpdateItem } from '@/hooks/use-items'
 import { searchAniList, extractAuthor } from '@/lib/anilist'
@@ -36,8 +36,9 @@ function ManageSeriesDialog({ open, onClose, series, anilist, category }: Manage
   const currentPriceUnit = series.grouped_value && currentQty
     ? parseFloat((series.grouped_value / currentQty).toFixed(2))
     : 0
-  const [newQty,   setNewQty]   = useState(String(currentQty))
-  const [newPrice, setNewPrice] = useState(String(currentPriceUnit || ''))
+  const [newQty,      setNewQty]      = useState(String(currentQty))
+  const [newPrice,    setNewPrice]    = useState(String(currentPriceUnit || ''))
+  const [newReadUpTo, setNewReadUpTo] = useState(String(series.read_up_to ?? ''))
   const updateItem = useUpdateItem()
 
   // ── Individual mode state ───────────────────────────────────────────────
@@ -77,14 +78,16 @@ function ManageSeriesDialog({ open, onClose, series, anilist, category }: Manage
 
   // ── Grouped save ────────────────────────────────────────────────────────
   const handleSaveGrouped = async () => {
-    const qty   = parseInt(newQty) || currentQty
-    const price = parseFloat(newPrice) || 0
+    const qty      = parseInt(newQty) || currentQty
+    const price    = parseFloat(newPrice) || 0
+    const readUpTo = parseInt(newReadUpTo) || null
     try {
       await updateItem.mutateAsync({
         id:   series.grouped_item_id!,
         data: {
-          quantity: qty,
-          value:    price > 0 ? String(price) : null,
+          quantity:   qty,
+          value:      price > 0 ? String(price) : null,
+          read_up_to: readUpTo,
         },
       })
       toast.success(`Série mise à jour : ${qty} tome${qty > 1 ? 's' : ''}`)
@@ -175,6 +178,18 @@ function ManageSeriesDialog({ open, onClose, series, anilist, category }: Manage
                   placeholder="7.50"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Lu jusqu'au tome</label>
+              <Input
+                type="number"
+                min="0"
+                value={newReadUpTo}
+                onChange={(e) => setNewReadUpTo(e.target.value)}
+                placeholder="ex: 9"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Laisser vide si pas commencé</p>
             </div>
 
             {newTotal !== null && (
@@ -309,6 +324,10 @@ function SeriesCard({ series, category }: { series: MangaSeries; category: Categ
       )
     : []
 
+  const isGrouped = series.grouped_item_id !== null
+  const readCount = isGrouped ? (series.read_up_to ?? null) : (series.completed_count || null)
+  const hasNewRelease = total !== null && anilist?.status === 'RELEASING' && series.owned_count < total
+
   const statusLabel: Record<string, string> = {
     FINISHED:         'Terminé',
     RELEASING:        'En cours',
@@ -363,14 +382,22 @@ function SeriesCard({ series, category }: { series: MangaSeries; category: Categ
               </div>
             </div>
 
-            {anilist && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {statusLabel[anilist.status] ?? anilist.status}
-              </p>
-            )}
+            <div className="flex items-center gap-2 mt-0.5">
+              {anilist && (
+                <p className="text-xs text-muted-foreground">
+                  {statusLabel[anilist.status] ?? anilist.status}
+                </p>
+              )}
+              {hasNewRelease && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                  <Bell className="h-2.5 w-2.5" />
+                  Nouveau tome
+                </span>
+              )}
+            </div>
 
             {/* Progress bar */}
-            <div className="mt-2">
+            <div className="mt-2 space-y-1">
               {total ? (
                 <>
                   <div className="flex items-center justify-between text-xs mb-1">
@@ -389,6 +416,12 @@ function SeriesCard({ series, category }: { series: MangaSeries; category: Categ
               ) : (
                 <p className="text-xs text-muted-foreground">
                   {series.owned_count} tome{series.owned_count !== 1 ? 's' : ''} possédé{series.owned_count !== 1 ? 's' : ''}
+                </p>
+              )}
+              {readCount !== null && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <BookOpen className="h-3 w-3" />
+                  Lu : {readCount} / {series.owned_count}
                 </p>
               )}
             </div>

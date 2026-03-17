@@ -97,6 +97,11 @@ def bulk_move(data: BulkMoveRequest, db: Session = Depends(get_db)):
     return {"moved": count}
 
 
+@router.get("/lent", response_model=list[ItemResponse])
+def get_lent_items(db: Session = Depends(get_db)):
+    return ItemService(db).get_lent_items()
+
+
 @router.get("/{item_id}", response_model=ItemResponse)
 def get_item(item_id: int, db: Session = Depends(get_db)):
     return ItemService(db).get_item(item_id)

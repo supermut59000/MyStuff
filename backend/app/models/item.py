@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
-    JSON, Boolean, DateTime, Enum, ForeignKey,
+    JSON, Boolean, Date, DateTime, Enum, ForeignKey,
     Integer, Numeric, String, Text, func,
 )
 
@@ -43,6 +43,9 @@ class Item(Base):
         nullable=True,
     )
     image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    lent_to:    Mapped[str | None] = mapped_column(String(200), nullable=True)
+    lent_at:    Mapped[date | None] = mapped_column(Date, nullable=True)
+    read_up_to: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()

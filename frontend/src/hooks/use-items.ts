@@ -54,7 +54,7 @@ export function useDashboardStats() {
 export function useCreateItem() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: Omit<Item, 'id' | 'created_at' | 'updated_at'>) =>
+    mutationFn: (data: Omit<Item, 'id' | 'created_at' | 'updated_at' | 'lent_to' | 'lent_at' | 'read_up_to'>) =>
       api.post<Item>('/api/items/', data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['items'] })
@@ -72,8 +72,18 @@ export function useUpdateItem() {
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['item', variables.id] })
       qc.invalidateQueries({ queryKey: ['items'] })
+      qc.invalidateQueries({ queryKey: ['lent-items'] })
+      qc.invalidateQueries({ queryKey: ['manga-series'] })
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
     },
+  })
+}
+
+export function useLentItems() {
+  return useQuery({
+    queryKey: ['lent-items'],
+    queryFn:  () => api.get<Item[]>('/api/items/lent'),
+    staleTime: 30_000,
   })
 }
 
