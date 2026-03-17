@@ -10,8 +10,7 @@ services:
       - "3307:3306"
     volumes:
       - mariadb-data:/var/lib/mysql
-      - ./backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
-      - ./backend/migrations/002_add_images.sql:/docker-entrypoint-initdb.d/002_add_images.sql
+      - ./backend/migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test:     ["CMD", "healthcheck.sh", "--connect"]
       interval: 10s
