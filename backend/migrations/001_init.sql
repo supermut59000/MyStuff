@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS categories (
     description   TEXT,
     custom_fields JSON         NOT NULL DEFAULT '[]',
     has_quantity  BOOLEAN      NOT NULL DEFAULT FALSE,
+    poster_layout BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at    DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME     DEFAULT CURRENT_TIMESTAMP
                                ON UPDATE CURRENT_TIMESTAMP
@@ -34,6 +35,11 @@ CREATE TABLE IF NOT EXISTS items (
     reading_status    ENUM('completed','reading','owned_unread','plan_to_read') DEFAULT NULL,
     wear_status       ENUM('active','stored','to_sell','to_donate') DEFAULT NULL,
     deployment_status ENUM('in_use_pc','in_use_server','in_use_other','storage','to_sell','broken') DEFAULT NULL,
+    image_path        VARCHAR(500)   DEFAULT NULL,
+    lent_to           VARCHAR(200)   DEFAULT NULL,
+    lent_at           DATE           DEFAULT NULL,
+    read_up_to        INT            DEFAULT NULL,
+    deleted_at        DATETIME       DEFAULT NULL,
     created_at        DATETIME       DEFAULT CURRENT_TIMESTAMP,
     updated_at        DATETIME       DEFAULT CURRENT_TIMESTAMP
                                      ON UPDATE CURRENT_TIMESTAMP,
@@ -44,15 +50,16 @@ CREATE INDEX        idx_items_category_id ON items(category_id);
 CREATE INDEX        idx_items_is_owned    ON items(is_owned);
 CREATE INDEX        idx_items_condition   ON items(`condition`);
 CREATE INDEX        idx_items_name        ON items(name);
+CREATE INDEX        idx_items_deleted_at  ON items(deleted_at);
 CREATE FULLTEXT INDEX idx_items_name_ft   ON items(name);
 
 -- ============================================================
 -- Preset Categories
 -- ============================================================
 
-INSERT INTO categories (name, icon, description, custom_fields) VALUES
+INSERT INTO categories (name, icon, description, has_quantity, poster_layout, custom_fields) VALUES
 (
-  'Manga', '📚', 'Mangas et manhwas',
+  'Manga', '📚', 'Mangas et manhwas', FALSE, TRUE,
   '[
     {"key":"serie",   "label":"Série",   "type":"text",   "required":true,  "options":null},
     {"key":"tome",    "label":"Tome",    "type":"number", "required":true,  "options":null},
@@ -61,7 +68,7 @@ INSERT INTO categories (name, icon, description, custom_fields) VALUES
   ]'
 ),
 (
-  'Pop Funko', '🎭', 'Figurines Pop Funko',
+  'Pop Funko', '🎭', 'Figurines Pop Funko', FALSE, TRUE,
   '[
     {"key":"serie",     "label":"Série",     "type":"text",    "required":true,  "options":null},
     {"key":"numero",    "label":"Numéro",    "type":"number",  "required":false, "options":null},
@@ -70,7 +77,7 @@ INSERT INTO categories (name, icon, description, custom_fields) VALUES
   ]'
 ),
 (
-  'Vêtements', '👕', 'Vêtements et accessoires',
+  'Vêtements', '👕', 'Vêtements et accessoires', TRUE, FALSE,
   '[
     {"key":"marque",  "label":"Marque",  "type":"text",   "required":false, "options":null},
     {"key":"taille",  "label":"Taille",  "type":"select", "required":false, "options":["XS","S","M","L","XL","XXL","3XL"]},
@@ -79,7 +86,7 @@ INSERT INTO categories (name, icon, description, custom_fields) VALUES
   ]'
 ),
 (
-  'Tech', '💻', 'Appareils et accessoires tech',
+  'Tech', '💻', 'Appareils et accessoires tech', FALSE, FALSE,
   '[
     {"key":"marque",       "label":"Marque",          "type":"text", "required":false, "options":null},
     {"key":"modele",       "label":"Modèle",          "type":"text", "required":false, "options":null},
@@ -88,7 +95,7 @@ INSERT INTO categories (name, icon, description, custom_fields) VALUES
   ]'
 ),
 (
-  'Jeux Vidéo', '🎮', 'Jeux vidéo toutes plateformes',
+  'Jeux Vidéo', '🎮', 'Jeux vidéo toutes plateformes', FALSE, TRUE,
   '[
     {"key":"plateforme", "label":"Plateforme", "type":"select", "required":true,  "options":["PS5","PS4","Switch","PC","Xbox","Other"]},
     {"key":"editeur",    "label":"Éditeur",    "type":"text",   "required":false, "options":null},
@@ -96,7 +103,7 @@ INSERT INTO categories (name, icon, description, custom_fields) VALUES
   ]'
 ),
 (
-  'Livres', '📖', 'Romans, BD et essais',
+  'Livres', '📖', 'Romans, BD et essais', FALSE, FALSE,
   '[
     {"key":"auteur",  "label":"Auteur",  "type":"text", "required":false, "options":null},
     {"key":"editeur", "label":"Éditeur", "type":"text", "required":false, "options":null},
@@ -104,5 +111,3 @@ INSERT INTO categories (name, icon, description, custom_fields) VALUES
     {"key":"genre",   "label":"Genre",   "type":"text", "required":false, "options":null}
   ]'
 );
-
-UPDATE categories SET has_quantity = TRUE WHERE name = 'Vêtements';
