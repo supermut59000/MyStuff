@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api.routes import categories, items, dashboard, search, manga
+from app.api.routes import categories, items, dashboard, search, manga, lookup
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +48,7 @@ app.include_router(items.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
 app.include_router(manga.router, prefix="/api")
+app.include_router(lookup.router, prefix="/api")
 
 _uploads_dir = "/app/uploads"
 try:

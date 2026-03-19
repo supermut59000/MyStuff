@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { NativeSelect } from '@/components/ui/native-select'
 import { useCreateItem, useUpdateItem } from '@/hooks/use-items'
 import { lookupISBN } from '@/lib/isbn'
+import { lookupUPC } from '@/lib/barcode-lookup'
 import type { Category, CustomFieldDefinition, Item } from '@/types'
 
 const BarcodeScanner = lazy(() =>
@@ -119,35 +120,62 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
   const isMangaOrBooks = ['Manga', 'Livres'].includes(category.name)
   const isVetements   = category.name === 'Vêtements'
   const isTech        = category.name === 'Tech'
+  const isFunko       = category.name === 'Pop Funko'
 
   const handleBarcodeDetected = async (code: string) => {
-    const info = await lookupISBN(code)
-    if (!info) {
-      toast.error(`No book found for ISBN: ${code}`)
-      return
-    }
+    if (isMangaOrBooks) {
+      // ISBN lookup for books/manga
+      const info = await lookupISBN(code)
+      if (!info) {
+        toast.error(`No book found for ISBN: ${code}`)
+        return
+      }
 
-    const isManga = category.name === 'Manga'
+      const isManga = category.name === 'Manga'
+      setValue('name', isManga && info.serie ? info.serie : info.title)
 
-    // For manga: name = serie name; for books: name = full title
-    setValue('name', isManga && info.serie ? info.serie : info.title)
+      const extra: Record<string, unknown> = { ...watch('custom_data') }
+      if (info.authors)   extra.auteur  = info.authors
+      if (info.publisher) extra.editeur = info.publisher
+      if (isManga) {
+        if (info.serie)        extra.serie = info.serie
+        if (info.tome != null) extra.tome  = info.tome
+      } else {
+        extra.isbn = code
+      }
+      setValue('custom_data', extra)
 
-    const extra: Record<string, unknown> = { ...watch('custom_data') }
-    if (info.authors)   extra.auteur  = info.authors
-    if (info.publisher) extra.editeur = info.publisher
-    if (isManga) {
-      if (info.serie)        extra.serie = info.serie
-      if (info.tome != null) extra.tome  = info.tome
+      const label = isManga && info.tome != null
+        ? `${info.serie} T${String(info.tome).padStart(2, '0')}`
+        : info.title
+      toast.success(`Found: ${label}${info.authors ? ` — ${info.authors}` : ''}`)
     } else {
-      // Livres: store ISBN in custom_data if field exists
-      extra.isbn = code
-    }
-    setValue('custom_data', extra)
+      // UPC lookup for everything else (Funko Pop, Tech, Jeux Vidéo, etc.)
+      const info = await lookupUPC(code)
+      if (!info) {
+        toast.error(`No product found for barcode: ${code}`)
+        return
+      }
 
-    const label = isManga && info.tome != null
-      ? `${info.serie} T${String(info.tome).padStart(2, '0')}`
-      : info.title
-    toast.success(`Found: ${label}${info.authors ? ` — ${info.authors}` : ''}`)
+      if (isFunko) {
+        setValue('name', info.funko_character || info.title)
+        const extra: Record<string, unknown> = { ...watch('custom_data') }
+        if (info.funko_serie)   extra.serie    = info.funko_serie
+        if (info.funko_numero)  extra.numero   = info.funko_numero
+        if (info.funko_exclusive) extra.exclusive = true
+        setValue('custom_data', extra)
+        toast.success(
+          `Found: ${info.funko_character || info.title}` +
+          `${info.funko_serie ? ` (${info.funko_serie})` : ''}` +
+          `${info.funko_numero ? ` #${info.funko_numero}` : ''}`
+        )
+      } else {
+        // Generic UPC: populate name and description
+        setValue('name', info.title)
+        if (info.description) setValue('description', info.description)
+        toast.success(`Found: ${info.title}`)
+      }
+    }
   }
 
   return (
@@ -163,15 +191,13 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
           </DialogTitle>
         </DialogHeader>
 
-        {isMangaOrBooks && (
-          <Suspense fallback={null}>
-            <BarcodeScanner
-              open={scannerOpen}
-              onClose={() => setScannerOpen(false)}
-              onDetected={handleBarcodeDetected}
-            />
-          </Suspense>
-        )}
+        <Suspense fallback={null}>
+          <BarcodeScanner
+            open={scannerOpen}
+            onClose={() => setScannerOpen(false)}
+            onDetected={handleBarcodeDetected}
+          />
+        </Suspense>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Name */}
@@ -179,17 +205,15 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
             <Label htmlFor="item-name">Name *</Label>
             <div className="flex gap-2">
               <Input id="item-name" {...register('name')} placeholder="Item name" className="flex-1" />
-              {isMangaOrBooks && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setScannerOpen(true)}
-                  title="Scan barcode / ISBN"
-                >
-                  <ScanLine className="h-4 w-4" />
-                </Button>
-              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setScannerOpen(true)}
+                title={isMangaOrBooks ? 'Scan ISBN' : 'Scan barcode / UPC'}
+              >
+                <ScanLine className="h-4 w-4" />
+              </Button>
             </div>
             {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
