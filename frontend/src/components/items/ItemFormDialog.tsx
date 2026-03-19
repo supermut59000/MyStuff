@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { NativeSelect } from '@/components/ui/native-select'
-import { useCreateItem, useUpdateItem } from '@/hooks/use-items'
+import { useCreateItem, useUpdateItem, useImageFromUrl } from '@/hooks/use-items'
 import { lookupISBN } from '@/lib/isbn'
 import { lookupUPC } from '@/lib/barcode-lookup'
 import type { Category, CustomFieldDefinition, Item } from '@/types'
@@ -49,7 +49,9 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
   const isEdit = !!item && !duplicate
   const createItem = useCreateItem()
   const updateItem = useUpdateItem()
+  const imageFromUrl = useImageFromUrl()
   const [scannerOpen, setScannerOpen] = useState(false)
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null)
 
   const { register, control, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } =
     useForm<FormValues>({
@@ -64,6 +66,7 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
 
   useEffect(() => {
     if (open) {
+      setPendingImageUrl(null)
       if (item) {
         reset({
           name:              item.name,
@@ -108,8 +111,14 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
         await updateItem.mutateAsync({ id: item!.id, data: payload })
         toast.success('Item updated')
       } else {
-        await createItem.mutateAsync({ ...payload, category_id: category.id })
+        const created = await createItem.mutateAsync({ ...payload, category_id: category.id })
         toast.success('Item added')
+        if (pendingImageUrl && created?.id) {
+          imageFromUrl.mutate(
+            { id: created.id, url: pendingImageUrl },
+            { onSuccess: () => toast.success('Image auto-downloaded from scan') },
+          )
+        }
       }
       onClose()
     } catch (e: unknown) {
@@ -156,6 +165,9 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
         toast.error(`No product found for barcode: ${code}`)
         return
       }
+
+      // Store image URL for auto-download after item creation
+      if (info.image_url) setPendingImageUrl(info.image_url)
 
       if (isFunko) {
         setValue('name', info.funko_character || info.title)

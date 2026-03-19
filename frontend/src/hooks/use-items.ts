@@ -116,6 +116,18 @@ export function useUploadItemImage() {
   })
 }
 
+export function useImageFromUrl() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, url }: { id: number; url: string }) =>
+      api.post<Item>(`/api/items/${id}/image-from-url`, { url }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['items'] })
+      qc.invalidateQueries({ queryKey: ['item'] })
+    },
+  })
+}
+
 export function useDeleteItemImage() {
   const qc = useQueryClient()
   return useMutation({

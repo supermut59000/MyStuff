@@ -1,9 +1,13 @@
+import logging
 from typing import Optional
 
+import httpx
 from fastapi import APIRouter, Depends, Query, UploadFile, File
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.api.deps import get_db, verify_api_key
 from app.schemas.item import ItemCreate, ItemListResponse, ItemResponse, ItemUpdate
@@ -152,6 +156,32 @@ async def upload_image(
 ):
     file_data = await file.read()
     return ItemService(db).upload_image(item_id, file_data, file.content_type or "")
+
+
+class ImageFromUrlRequest(BaseModel):
+    url: str
+
+
+@router.post("/{item_id}/image-from-url", response_model=ItemResponse)
+async def image_from_url(
+    item_id: int,
+    data: ImageFromUrlRequest,
+    db: Session = Depends(get_db),
+):
+    """Download an image from URL and attach it to the item."""
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        try:
+            resp = await client.get(data.url)
+        except httpx.TimeoutException:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=504, detail="Image download timed out")
+        if resp.status_code != 200:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=502, detail=f"Image download failed: {resp.status_code}")
+        content_type = resp.headers.get("content-type", "")
+        if not content_type.startswith("image/"):
+            content_type = "image/jpeg"
+        return ItemService(db).upload_image(item_id, resp.content, content_type)
 
 
 @router.delete("/{item_id}/image", response_model=ItemResponse)
