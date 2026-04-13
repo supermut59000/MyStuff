@@ -12,7 +12,6 @@ self.addEventListener('activate', (e) => {
       Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
     )
   )
-  self.clients.claim()
 })
 
 self.addEventListener('fetch', (e) => {
