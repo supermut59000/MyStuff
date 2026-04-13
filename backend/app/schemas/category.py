@@ -27,11 +27,22 @@ class CustomFieldDefinition(BaseModel):
         return self
 
 
+CategoryFeature = Literal[
+    "reading_status",
+    "wear_status",
+    "deployment_status",
+    "barcode_isbn",
+    "series_grouping",
+    "anilist_import",
+]
+
+
 class CategoryBase(BaseModel):
     name:          str
     icon:          str = "📦"
     description:   Optional[str] = None
     custom_fields: list[CustomFieldDefinition] = []
+    features:     list[CategoryFeature] = []
     has_quantity:  bool = False
     poster_layout: bool = False
 
@@ -45,6 +56,7 @@ class CategoryUpdate(BaseModel):
     icon:          Optional[str] = None
     description:   Optional[str] = None
     custom_fields: Optional[list[CustomFieldDefinition]] = None
+    features:     Optional[list[CategoryFeature]] = None
     has_quantity:  Optional[bool] = None
     poster_layout: Optional[bool] = None
 

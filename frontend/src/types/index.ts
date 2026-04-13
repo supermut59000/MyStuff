@@ -1,5 +1,13 @@
 export type FieldType = 'text' | 'number' | 'boolean' | 'select' | 'date'
 
+export type CategoryFeature =
+  | 'reading_status'
+  | 'wear_status'
+  | 'deployment_status'
+  | 'barcode_isbn'
+  | 'series_grouping'
+  | 'anilist_import'
+
 export interface CustomFieldDefinition {
   key:      string
   label:    string
@@ -14,6 +22,7 @@ export interface Category {
   icon:          string
   description:   string | null
   custom_fields: CustomFieldDefinition[]
+  features:     CategoryFeature[]
   has_quantity:  boolean
   poster_layout: boolean
   item_count:    number

@@ -15,8 +15,11 @@ class Settings(BaseSettings):
     API_KEY:      str = "change-me"
     CORS_ORIGINS: str = "http://localhost:3056"
 
-    UPLOAD_DIR:         str = "/app/uploads"
-    MAX_UPLOAD_SIZE_MB: int = 5
+    UPLOAD_DIR:           str = "/app/uploads"
+    MAX_UPLOAD_SIZE_MB:   int = 5
+    IMAGE_MAX_DIMENSION:  int = 1200
+    IMAGE_QUALITY:        int = 85
+    HTTP_TIMEOUT:         int = 15
 
     @property
     def DATABASE_URL(self) -> str:

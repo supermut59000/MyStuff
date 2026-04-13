@@ -1,22 +1,21 @@
+import { useNavigate } from 'react-router-dom'
 import { Trash2, RotateCcw, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTrashItems, useRestoreItem, usePermanentDeleteItem, useEmptyTrash } from '@/hooks/use-items'
 import { useCategories } from '@/hooks/use-categories'
 import { Button } from '@/components/ui/button'
 import { getImageUrl } from '@/lib/api'
+import { formatDateLong } from '@/lib/format'
 import type { Item } from '@/types'
-
-function formatDate(iso: string | null): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 function itemImageUrl(item: Item): string | null {
   if (!item.image_path) return null
   return getImageUrl(item.image_path)
 }
 
-export function TrashView({ onBack }: { onBack: () => void }) {
+export function TrashView() {
+  const navigate = useNavigate()
+  const onBack = () => navigate('/')
   const { data: items = [], isLoading } = useTrashItems()
   const { data: categories = [] } = useCategories()
   const restore = useRestoreItem()
@@ -127,7 +126,7 @@ export function TrashView({ onBack }: { onBack: () => void }) {
                   <p className="text-xs text-muted-foreground">
                     {categoryName(item.category_id)}
                     {item.deleted_at && (
-                      <span className="ml-2">· deleted {formatDate(item.deleted_at)}</span>
+                      <span className="ml-2">· deleted {formatDateLong(item.deleted_at)}</span>
                     )}
                   </p>
                 </div>

@@ -11,6 +11,7 @@ import { ItemFormDialog } from '@/components/items/ItemFormDialog'
 import { useDeleteItem, useUploadItemImage, useDeleteItemImage, useUpdateItem } from '@/hooks/use-items'
 import { exportItemsCSV } from '@/lib/csv'
 import { getImageUrl } from '@/lib/api'
+import { formatCurrency, formatDate } from '@/lib/format'
 import type { Category, Item, ReadingStatus } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -182,13 +183,13 @@ export function ItemViewDialog({ item, category, onClose }: Props) {
             <div className="flex items-baseline gap-2">
               <span className="text-sm font-medium">Valeur :</span>
               <span className="text-lg font-bold">
-                {parseFloat(item.value).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                {formatCurrency(item.value)}
               </span>
             </div>
           )}
 
           {/* Reading status quick toggle */}
-          {item.is_owned && (
+          {item.is_owned && category.features?.includes('reading_status') && (
             <div>
               <p className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
                 <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
@@ -243,7 +244,7 @@ export function ItemViewDialog({ item, category, onClose }: Props) {
                     <p className="text-sm font-medium">Prêté à <span className="text-orange-500">{lentTo}</span></p>
                     {lentAt && (
                       <p className="text-xs text-muted-foreground">
-                        le {new Date(lentAt).toLocaleDateString('fr-FR')}
+                        le {formatDate(lentAt)}
                       </p>
                     )}
                   </div>
@@ -295,7 +296,7 @@ export function ItemViewDialog({ item, category, onClose }: Props) {
 
           {/* Meta */}
           <p className="text-xs text-muted-foreground border-t pt-3">
-            Ajouté le {new Date(item.created_at).toLocaleDateString('fr-FR')}
+            Ajouté le {formatDate(item.created_at)}
           </p>
         </div>
 

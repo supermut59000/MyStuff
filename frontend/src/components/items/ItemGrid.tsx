@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plus, ChevronLeft, ChevronRight, CheckSquare, BookOpen, LayoutGrid } from 'lucide-react'
 import { toast } from 'sonner'
 import { useItems, useBulkDeleteItems, useBulkMoveItems } from '@/hooks/use-items'
@@ -15,16 +16,9 @@ import { MangaSeriesView } from '@/components/items/MangaSeriesView'
 import { AniListImportDialog } from '@/components/items/AniListImportDialog'
 import type { Item } from '@/types'
 
-function hasSerieTome(fields: { key: string }[]): boolean {
-  const keys = fields.map((f) => f.key)
-  return (keys.includes('serie') || keys.includes('series_name')) &&
-         (keys.includes('tome')  || keys.includes('volume_number'))
-}
-
 interface ItemGridProps {
   categoryId:   number | null
   wishlistOnly: boolean
-  onBack:       () => void
 }
 
 const DEFAULT_FILTERS: Filters = {
@@ -32,7 +26,9 @@ const DEFAULT_FILTERS: Filters = {
   reading_status: '', wear_status: '', deployment_status: '',
 }
 
-export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
+export function ItemGrid({ categoryId, wishlistOnly }: ItemGridProps) {
+  const navigate = useNavigate()
+  const onBack = () => navigate('/')
   const { data: categories = [] } = useCategories()
   const category = categories.find((c) => c.id === categoryId) ?? null
 
@@ -48,7 +44,9 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
   const [seriesView, setSeriesView]     = useState(false)
   const [importOpen, setImportOpen]     = useState(false)
 
-  const showSeriesToggle = !wishlistOnly && category !== null && hasSerieTome(category.custom_fields)
+  const hasFeature = (f: string) => category?.features?.includes(f as never) ?? false
+  const showSeriesToggle = !wishlistOnly && category !== null && hasFeature('series_grouping')
+  const showAnilistImport = showSeriesToggle && hasFeature('anilist_import')
 
   const debouncedSearch = useDebounce(filters.search)
 
@@ -156,7 +154,7 @@ export function ItemGrid({ categoryId, wishlistOnly, onBack }: ItemGridProps) {
                 Select
               </Button>
             )}
-            {showSeriesToggle && (
+            {showAnilistImport && (
               <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                 Import série
               </Button>

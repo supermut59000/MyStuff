@@ -28,11 +28,10 @@ const OWNED_TABS: { value: Filters['owned']; label: string }[] = [
 ]
 
 function getCategoryStatusType(category: Category | null | undefined): 'reading' | 'wear' | 'deployment' | null {
-  if (!category) return null
-  const name = category.name.toLowerCase()
-  if (name === 'manga' || name === 'livres') return 'reading'
-  if (name === 'vêtements' || name === 'vetements') return 'wear'
-  if (name === 'tech') return 'deployment'
+  if (!category?.features) return null
+  if (category.features.includes('reading_status'))    return 'reading'
+  if (category.features.includes('wear_status'))       return 'wear'
+  if (category.features.includes('deployment_status')) return 'deployment'
   return null
 }
 

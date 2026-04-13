@@ -1,3 +1,4 @@
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Heart, LayoutDashboard, Plus, Settings, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCategories } from '@/hooks/use-categories'
@@ -6,37 +7,30 @@ import { Separator } from '@/components/ui/separator'
 import type { Category } from '@/types'
 
 interface SidebarProps {
-  selectedCategoryId: number | null
-  showWishlist:       boolean
-  showTrash:          boolean
   mobileOpen:         boolean
   onClose:            () => void
-  onSelectCategory:   (id: number) => void
-  onSelectDashboard:  () => void
-  onSelectWishlist:   () => void
-  onSelectTrash:      () => void
   onNewCategory:      () => void
   onEditCategory:     (cat: Category) => void
 }
 
 export function Sidebar({
-  selectedCategoryId,
-  showWishlist,
-  showTrash,
   mobileOpen,
   onClose,
-  onSelectCategory,
-  onSelectDashboard,
-  onSelectWishlist,
-  onSelectTrash,
   onNewCategory,
   onEditCategory,
 }: SidebarProps) {
+  const navigate = useNavigate()
+  const location = useLocation()
   const { data: categories = [], isLoading } = useCategories()
 
-  const isDashboard = selectedCategoryId === null && !showWishlist && !showTrash
+  const isDashboard = location.pathname === '/'
+  const isWishlist  = location.pathname === '/wishlist'
+  const isTrash     = location.pathname === '/trash'
+  const activeCategoryId = location.pathname.startsWith('/category/')
+    ? parseInt(location.pathname.split('/')[2], 10)
+    : null
 
-  const nav = (fn: () => void) => { fn(); onClose() }
+  const nav = (path: string) => { navigate(path); onClose() }
 
   return (
     <>
@@ -56,7 +50,7 @@ export function Sidebar({
         {/* Dashboard link */}
         <div className="p-3">
           <button
-            onClick={() => nav(onSelectDashboard)}
+            onClick={() => nav('/')}
             className={cn(
               'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
               isDashboard
@@ -98,10 +92,10 @@ export function Sidebar({
             {categories.map((cat) => (
               <div key={cat.id} className="group flex items-center">
                 <button
-                  onClick={() => nav(() => onSelectCategory(cat.id))}
+                  onClick={() => nav(`/category/${cat.id}`)}
                   className={cn(
                     'flex flex-1 items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors min-w-0',
-                    selectedCategoryId === cat.id && !showWishlist
+                    activeCategoryId === cat.id
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
                       : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                   )}
@@ -132,10 +126,10 @@ export function Sidebar({
         {/* Wishlist + Trash */}
         <div className="p-3 space-y-0.5">
           <button
-            onClick={() => nav(onSelectWishlist)}
+            onClick={() => nav('/wishlist')}
             className={cn(
               'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-              showWishlist
+              isWishlist
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
             )}
@@ -144,10 +138,10 @@ export function Sidebar({
             Wishlist
           </button>
           <button
-            onClick={() => nav(onSelectTrash)}
+            onClick={() => nav('/trash')}
             className={cn(
               'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-              showTrash
+              isTrash
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
             )}

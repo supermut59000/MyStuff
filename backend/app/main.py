@@ -50,10 +50,9 @@ app.include_router(search.router, prefix="/api")
 app.include_router(manga.router, prefix="/api")
 app.include_router(lookup.router, prefix="/api")
 
-_uploads_dir = "/app/uploads"
 try:
-    os.makedirs(_uploads_dir, exist_ok=True)
-    app.mount("/uploads", StaticFiles(directory=_uploads_dir), name="uploads")
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 except (PermissionError, OSError):
     pass  # Not in Docker; uploads endpoint unavailable in dev/test
 

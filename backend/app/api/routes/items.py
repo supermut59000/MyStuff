@@ -1,17 +1,21 @@
+import ipaddress
 import logging
+import socket
 from typing import Optional
+from urllib.parse import urlparse
 
 import httpx
-from fastapi import APIRouter, Depends, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
-
 from app.api.deps import get_db, verify_api_key
+from app.core.config import settings
 from app.schemas.item import ItemCreate, ItemListResponse, ItemResponse, ItemUpdate
 from app.services.item_service import ItemService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/items",
@@ -162,6 +166,24 @@ class ImageFromUrlRequest(BaseModel):
     url: str
 
 
+def _validate_url_not_internal(url: str) -> None:
+    """Block SSRF: reject private/internal IPs and non-http(s) schemes."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(status_code=422, detail="Only http and https URLs are allowed")
+    hostname = parsed.hostname
+    if not hostname:
+        raise HTTPException(status_code=422, detail="Invalid URL")
+    try:
+        resolved = socket.getaddrinfo(hostname, None)
+        for _, _, _, _, addr in resolved:
+            ip = ipaddress.ip_address(addr[0])
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                raise HTTPException(status_code=422, detail="URLs pointing to internal networks are not allowed")
+    except socket.gaierror:
+        raise HTTPException(status_code=422, detail=f"Cannot resolve hostname: {hostname}")
+
+
 @router.post("/{item_id}/image-from-url", response_model=ItemResponse)
 async def image_from_url(
     item_id: int,
@@ -169,14 +191,13 @@ async def image_from_url(
     db: Session = Depends(get_db),
 ):
     """Download an image from URL and attach it to the item."""
-    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+    _validate_url_not_internal(data.url)
+    async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT, follow_redirects=True) as client:
         try:
             resp = await client.get(data.url)
         except httpx.TimeoutException:
-            from fastapi import HTTPException
             raise HTTPException(status_code=504, detail="Image download timed out")
         if resp.status_code != 200:
-            from fastapi import HTTPException
             raise HTTPException(status_code=502, detail=f"Image download failed: {resp.status_code}")
         content_type = resp.headers.get("content-type", "")
         if not content_type.startswith("image/"):

@@ -15,6 +15,7 @@ class Category(Base):
     icon: Mapped[str] = mapped_column(String(10), nullable=False, default="📦")
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     custom_fields: Mapped[list[Any]] = mapped_column(JSON, nullable=False, default=list)
+    features:     Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     has_quantity:  Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     poster_layout: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(

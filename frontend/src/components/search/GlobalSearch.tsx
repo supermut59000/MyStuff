@@ -3,6 +3,7 @@ import { Search, X } from 'lucide-react'
 import { useGlobalSearch } from '@/hooks/use-items'
 import { useDebounce } from '@/hooks/use-debounce'
 import { getImageUrl } from '@/lib/api'
+import { formatCurrencyCompact } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { SearchResult } from '@/types'
 
@@ -120,9 +121,7 @@ export function GlobalSearch({ open, onClose, onSelectResult }: Props) {
                     </div>
                     {result.value && (
                       <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                        {parseFloat(result.value).toLocaleString('fr-FR', {
-                          style: 'currency', currency: 'EUR', maximumFractionDigits: 0,
-                        })}
+                        {formatCurrencyCompact(result.value)}
                       </span>
                     )}
                   </button>

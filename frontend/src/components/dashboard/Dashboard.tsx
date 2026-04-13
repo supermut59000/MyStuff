@@ -1,15 +1,15 @@
+import { useNavigate } from 'react-router-dom'
 import { Package, Heart, TrendingUp, Share2, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDashboardStats, useLentItems, useUpdateItem } from '@/hooks/use-items'
 import { CategoryCard } from '@/components/categories/CategoryCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { formatCurrency, formatDate } from '@/lib/format'
 
-interface DashboardProps {
-  onSelectCategory: (id: number) => void
-}
-
-export function Dashboard({ onSelectCategory }: DashboardProps) {
+export function Dashboard() {
+  const navigate = useNavigate()
+  const onSelectCategory = (id: number) => navigate(`/category/${id}`)
   const { data: stats, isLoading } = useDashboardStats()
   const { data: lentItems = [] }   = useLentItems()
   const updateItem = useUpdateItem()
@@ -75,7 +75,7 @@ export function Dashboard({ onSelectCategory }: DashboardProps) {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {stats.total_value.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+              {formatCurrency(stats.total_value)}
             </p>
             <p className="text-xs text-muted-foreground">owned items only</p>
           </CardContent>
@@ -97,7 +97,7 @@ export function Dashboard({ onSelectCategory }: DashboardProps) {
                   <p className="text-sm font-medium">{item.name}</p>
                   <p className="text-xs text-muted-foreground">
                     Prêté à <span className="text-orange-500 font-medium">{item.lent_to}</span>
-                    {item.lent_at && ` · le ${new Date(item.lent_at).toLocaleDateString('fr-FR')}`}
+                    {item.lent_at && ` · le ${formatDate(item.lent_at)}`}
                   </p>
                 </div>
                 <Button

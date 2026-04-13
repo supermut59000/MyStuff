@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { useQuery } from '@tanstack/react-query'
 import { searchAniListList, extractAuthor } from '@/lib/anilist'
 import { uploadImage } from '@/lib/api'
+import { formatCurrency } from '@/lib/format'
 import { useBulkCreateItems } from '@/hooks/use-items'
 import { useDebounce } from '@/hooks/use-debounce'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -439,7 +440,7 @@ export function AniListImportDialog({ open, onClose, category }: Props) {
                 </Label>
                 <div className="flex h-9 items-center rounded-md border bg-muted/50 px-3 text-sm font-semibold">
                   {total > 0
-                    ? total.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+                    ? formatCurrency(total)
                     : '—'
                   }
                 </div>
@@ -483,7 +484,7 @@ export function AniListImportDialog({ open, onClose, category }: Props) {
               )}
               {price > 0 && (
                 <p className="text-muted-foreground">
-                  Valeur totale : {total.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                  Valeur totale : {formatCurrency(total)}
                 </p>
               )}
             </div>

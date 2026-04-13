@@ -1,6 +1,7 @@
 import type { CategoryStat } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { formatCurrencyCompact } from '@/lib/format'
 
 interface CategoryCardProps {
   stat:           CategoryStat
@@ -31,7 +32,7 @@ export function CategoryCard({ stat, onSelectCategory }: CategoryCardProps) {
         </p>
         {stat.total_value > 0 && (
           <p className="mt-1 text-sm font-medium text-foreground">
-            {stat.total_value.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+            {formatCurrencyCompact(stat.total_value)}
           </p>
         )}
       </CardContent>

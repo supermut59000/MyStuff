@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.api.deps import verify_api_key
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,7 @@ def parse_funko_title(title: str) -> dict:
 @router.get("/upc/{code}", response_model=UPCResult)
 async def lookup_upc(code: str):
     """Look up a product by UPC/EAN barcode via UPCitemdb (free tier: 100 req/day)."""
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT) as client:
         try:
             resp = await client.get(
                 f"https://api.upcitemdb.com/prod/trial/lookup?upc={code}"

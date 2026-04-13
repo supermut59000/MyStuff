@@ -1,6 +1,7 @@
 import { Heart, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getImageUrl } from '@/lib/api'
+import { formatCurrency } from '@/lib/format'
 import type { Item } from '@/types'
 
 const CONDITION_STYLE: Record<string, string> = {
@@ -67,7 +68,7 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
       {/* Value */}
       {item.value && (
         <p className="mt-auto text-sm font-semibold text-muted-foreground">
-          {parseFloat(item.value).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+          {formatCurrency(item.value)}
         </p>
       )}
     </button>

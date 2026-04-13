@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { useMangaSeries, useBulkCreateItems, useUpdateItem } from '@/hooks/use-items'
 import { searchAniList, extractAuthor } from '@/lib/anilist'
 import { uploadImage } from '@/lib/api'
+import { formatCurrency } from '@/lib/format'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -194,7 +195,7 @@ function ManageSeriesDialog({ open, onClose, series, anilist, category }: Manage
 
             {newTotal !== null && (
               <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
-                Valeur totale : <strong>{newTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</strong>
+                Valeur totale : <strong>{formatCurrency(newTotal)}</strong>
               </div>
             )}
 

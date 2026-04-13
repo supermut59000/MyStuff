@@ -126,13 +126,13 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
     }
   }
 
-  const isMangaOrBooks = ['Manga', 'Livres'].includes(category.name)
-  const isVetements   = category.name === 'Vêtements'
-  const isTech        = category.name === 'Tech'
-  const isFunko       = category.name === 'Pop Funko'
-
+  const hasFeature = (f: string) => category.features?.includes(f as never) ?? false
+  const hasBarcodeIsbn = hasFeature('barcode_isbn')
+  const hasReadingStatus = hasFeature('reading_status')
+  const hasWearStatus = hasFeature('wear_status')
+  const hasDeploymentStatus = hasFeature('deployment_status')
   const handleBarcodeDetected = async (code: string) => {
-    if (isMangaOrBooks) {
+    if (hasBarcodeIsbn) {
       // ISBN lookup for books/manga
       const info = await lookupISBN(code)
       if (!info) {
@@ -140,13 +140,13 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
         return
       }
 
-      const isManga = category.name === 'Manga'
-      setValue('name', isManga && info.serie ? info.serie : info.title)
+      const hasSerie = category.custom_fields.some(f => f.key === 'serie')
+      setValue('name', hasSerie && info.serie ? info.serie : info.title)
 
       const extra: Record<string, unknown> = { ...watch('custom_data') }
       if (info.authors)   extra.auteur  = info.authors
       if (info.publisher) extra.editeur = info.publisher
-      if (isManga) {
+      if (hasSerie) {
         if (info.serie)        extra.serie = info.serie
         if (info.tome != null) extra.tome  = info.tome
       } else {
@@ -154,12 +154,12 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
       }
       setValue('custom_data', extra)
 
-      const label = isManga && info.tome != null
+      const label = hasSerie && info.tome != null
         ? `${info.serie} T${String(info.tome).padStart(2, '0')}`
         : info.title
       toast.success(`Found: ${label}${info.authors ? ` — ${info.authors}` : ''}`)
     } else {
-      // UPC lookup for everything else (Funko Pop, Tech, Jeux Vidéo, etc.)
+      // UPC lookup for everything else
       const info = await lookupUPC(code)
       if (!info) {
         toast.error(`No product found for barcode: ${code}`)
@@ -169,7 +169,10 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
       // Store image URL for auto-download after item creation
       if (info.image_url) setPendingImageUrl(info.image_url)
 
-      if (isFunko) {
+      // Check if this category has funko-style fields
+      const hasFunkoFields = category.custom_fields.some(f => f.key === 'serie') &&
+                             category.custom_fields.some(f => f.key === 'numero')
+      if (hasFunkoFields && info.funko_character) {
         setValue('name', info.funko_character || info.title)
         const extra: Record<string, unknown> = { ...watch('custom_data') }
         if (info.funko_serie)   extra.serie    = info.funko_serie
@@ -222,7 +225,7 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
                 variant="outline"
                 size="icon"
                 onClick={() => setScannerOpen(true)}
-                title={isMangaOrBooks ? 'Scan ISBN' : 'Scan barcode / UPC'}
+                title={hasBarcodeIsbn ? 'Scan ISBN' : 'Scan barcode / UPC'}
               >
                 <ScanLine className="h-4 w-4" />
               </Button>
@@ -279,8 +282,8 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
             <Label htmlFor="is-owned">I own this item (uncheck for wishlist)</Label>
           </div>
 
-          {/* Category-specific status fields */}
-          {isMangaOrBooks && (
+          {/* Category-specific status fields — driven by features */}
+          {hasReadingStatus && (
             <div className="space-y-1">
               <Label>Reading status</Label>
               <NativeSelect {...register('reading_status')}>
@@ -292,7 +295,7 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
               </NativeSelect>
             </div>
           )}
-          {isVetements && (
+          {hasWearStatus && (
             <div className="space-y-1">
               <Label>Wear status</Label>
               <NativeSelect {...register('wear_status')}>
@@ -304,7 +307,7 @@ export function ItemFormDialog({ open, onClose, category, item, duplicate }: Pro
               </NativeSelect>
             </div>
           )}
-          {isTech && (
+          {hasDeploymentStatus && (
             <div className="space-y-1">
               <Label>Deployment status</Label>
               <NativeSelect {...register('deployment_status')}>

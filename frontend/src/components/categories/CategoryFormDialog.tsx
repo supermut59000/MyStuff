@@ -14,7 +14,16 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { NativeSelect } from '@/components/ui/native-select'
 import { useCreateCategory, useUpdateCategory } from '@/hooks/use-categories'
-import type { Category, FieldType } from '@/types'
+import type { Category, CategoryFeature, FieldType } from '@/types'
+
+const AVAILABLE_FEATURES: { value: CategoryFeature; label: string; hint: string }[] = [
+  { value: 'reading_status',    label: 'Reading status',     hint: 'Track reading progress (plan, reading, completed)' },
+  { value: 'wear_status',       label: 'Wear status',        hint: 'Track clothing usage (active, stored, to sell/donate)' },
+  { value: 'deployment_status', label: 'Deployment status',  hint: 'Track device status (in use, storage, broken)' },
+  { value: 'barcode_isbn',      label: 'ISBN barcode scan',  hint: 'Scan barcodes to auto-fill book/manga info via ISBN' },
+  { value: 'series_grouping',   label: 'Series grouping',    hint: 'Group items by series with volume tracking' },
+  { value: 'anilist_import',    label: 'AniList import',     hint: 'Import manga series metadata from AniList' },
+]
 
 const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'text',    label: 'Text' },
@@ -32,10 +41,13 @@ const customFieldSchema = z.object({
   options:  z.string(), // comma-separated, only for select
 })
 
+const FEATURE_VALUES = ['reading_status', 'wear_status', 'deployment_status', 'barcode_isbn', 'series_grouping', 'anilist_import'] as const
+
 const formSchema = z.object({
   name:          z.string().min(1, 'Name is required'),
   icon:          z.string().min(1, 'Icon is required'),
   description:   z.string().optional(),
+  features:     z.array(z.enum(FEATURE_VALUES)),
   has_quantity:  z.boolean(),
   poster_layout: z.boolean(),
   custom_fields: z.array(customFieldSchema),
@@ -61,6 +73,7 @@ export function CategoryFormDialog({ open, onClose, category }: Props) {
         name:          '',
         icon:          '📦',
         description:   '',
+        features:     [],
         has_quantity:  false,
         poster_layout: false,
         custom_fields: [],
@@ -77,6 +90,7 @@ export function CategoryFormDialog({ open, onClose, category }: Props) {
           name:         category.name,
           icon:         category.icon,
           description:  category.description ?? '',
+          features:     category.features ?? [],
           has_quantity:  category.has_quantity,
           poster_layout: category.poster_layout,
           custom_fields: category.custom_fields.map((f) => ({
@@ -88,7 +102,7 @@ export function CategoryFormDialog({ open, onClose, category }: Props) {
           })),
         })
       } else {
-        reset({ name: '', icon: '📦', description: '', has_quantity: false, poster_layout: false, custom_fields: [] })
+        reset({ name: '', icon: '📦', description: '', features: [], has_quantity: false, poster_layout: false, custom_fields: [] })
       }
     }
   }, [open, category, reset])
@@ -108,12 +122,12 @@ export function CategoryFormDialog({ open, onClose, category }: Props) {
       if (isEdit) {
         await updateCategory.mutateAsync({
           id:   category!.id,
-          data: { name: data.name, icon: data.icon, description: data.description || null, has_quantity: data.has_quantity, poster_layout: data.poster_layout, custom_fields },
+          data: { name: data.name, icon: data.icon, description: data.description || null, features: data.features, has_quantity: data.has_quantity, poster_layout: data.poster_layout, custom_fields },
         })
         toast.success('Category updated')
       } else {
         await createCategory.mutateAsync({
-          name: data.name, icon: data.icon, description: data.description || null, has_quantity: data.has_quantity, poster_layout: data.poster_layout, custom_fields,
+          name: data.name, icon: data.icon, description: data.description || null, features: data.features, has_quantity: data.has_quantity, poster_layout: data.poster_layout, custom_fields,
         })
         toast.success('Category created')
       }
@@ -172,6 +186,39 @@ export function CategoryFormDialog({ open, onClose, category }: Props) {
               )}
             />
             <Label htmlFor="poster-layout">Poster layout (vertical cover images — ideal for manga, movies, games)</Label>
+          </div>
+
+          {/* Features toggles */}
+          <div className="space-y-2">
+            <Label>Features</Label>
+            <div className="space-y-2 rounded-md border p-3">
+              {AVAILABLE_FEATURES.map((feat) => (
+                <Controller
+                  key={feat.value}
+                  control={control}
+                  name="features"
+                  render={({ field: { value, onChange } }) => (
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id={`feat-${feat.value}`}
+                        checked={value.includes(feat.value)}
+                        onCheckedChange={(checked) => {
+                          onChange(
+                            checked
+                              ? [...value, feat.value]
+                              : value.filter((v: string) => v !== feat.value)
+                          )
+                        }}
+                      />
+                      <div>
+                        <Label htmlFor={`feat-${feat.value}`} className="text-sm font-medium">{feat.label}</Label>
+                        <p className="text-xs text-muted-foreground">{feat.hint}</p>
+                      </div>
+                    </div>
+                  )}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Custom fields */}

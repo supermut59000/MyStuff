@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS categories (
     icon          VARCHAR(10)  NOT NULL DEFAULT '📦',
     description   TEXT,
     custom_fields JSON         NOT NULL DEFAULT '[]',
+    features     JSON          NOT NULL DEFAULT '[]',
     has_quantity  BOOLEAN      NOT NULL DEFAULT FALSE,
     poster_layout BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at    DATETIME     DEFAULT CURRENT_TIMESTAMP,
@@ -57,9 +58,10 @@ CREATE FULLTEXT INDEX idx_items_name_ft   ON items(name);
 -- Preset Categories
 -- ============================================================
 
-INSERT INTO categories (name, icon, description, has_quantity, poster_layout, custom_fields) VALUES
+INSERT INTO categories (name, icon, description, has_quantity, poster_layout, features, custom_fields) VALUES
 (
   'Manga', '📚', 'Mangas et manhwas', FALSE, TRUE,
+  '["reading_status", "barcode_isbn", "series_grouping", "anilist_import"]',
   '[
     {"key":"serie",   "label":"Série",   "type":"text",   "required":true,  "options":null},
     {"key":"tome",    "label":"Tome",    "type":"number", "required":true,  "options":null},
@@ -69,6 +71,7 @@ INSERT INTO categories (name, icon, description, has_quantity, poster_layout, cu
 ),
 (
   'Pop Funko', '🎭', 'Figurines Pop Funko', FALSE, TRUE,
+  '[]',
   '[
     {"key":"serie",     "label":"Série",     "type":"text",    "required":true,  "options":null},
     {"key":"numero",    "label":"Numéro",    "type":"number",  "required":false, "options":null},
@@ -78,6 +81,7 @@ INSERT INTO categories (name, icon, description, has_quantity, poster_layout, cu
 ),
 (
   'Vêtements', '👕', 'Vêtements et accessoires', TRUE, FALSE,
+  '["wear_status"]',
   '[
     {"key":"marque",  "label":"Marque",  "type":"text",   "required":false, "options":null},
     {"key":"taille",  "label":"Taille",  "type":"select", "required":false, "options":["XS","S","M","L","XL","XXL","3XL"]},
@@ -87,6 +91,7 @@ INSERT INTO categories (name, icon, description, has_quantity, poster_layout, cu
 ),
 (
   'Tech', '💻', 'Appareils et accessoires tech', FALSE, FALSE,
+  '["deployment_status"]',
   '[
     {"key":"marque",       "label":"Marque",          "type":"text", "required":false, "options":null},
     {"key":"modele",       "label":"Modèle",          "type":"text", "required":false, "options":null},
@@ -96,6 +101,7 @@ INSERT INTO categories (name, icon, description, has_quantity, poster_layout, cu
 ),
 (
   'Jeux Vidéo', '🎮', 'Jeux vidéo toutes plateformes', FALSE, TRUE,
+  '[]',
   '[
     {"key":"plateforme", "label":"Plateforme", "type":"select", "required":true,  "options":["PS5","PS4","Switch","PC","Xbox","Other"]},
     {"key":"editeur",    "label":"Éditeur",    "type":"text",   "required":false, "options":null},
@@ -104,6 +110,7 @@ INSERT INTO categories (name, icon, description, has_quantity, poster_layout, cu
 ),
 (
   'Livres', '📖', 'Romans, BD et essais', FALSE, FALSE,
+  '["reading_status", "barcode_isbn"]',
   '[
     {"key":"auteur",  "label":"Auteur",  "type":"text", "required":false, "options":null},
     {"key":"editeur", "label":"Éditeur", "type":"text", "required":false, "options":null},

@@ -1,7 +1,9 @@
 import csv
 import io
 import logging
-from datetime import datetime
+import os
+import uuid
+from datetime import datetime, timezone
 from math import ceil
 from typing import Any, Optional
 
@@ -9,6 +11,7 @@ from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.category import Category
 from app.models.item import Item
 from app.schemas.category import CustomFieldDefinition
@@ -201,7 +204,7 @@ class ItemService:
     def delete_item(self, item_id: int) -> None:
         """Soft-delete: sets deleted_at timestamp."""
         item = self.get_item(item_id)
-        item.deleted_at = datetime.utcnow()
+        item.deleted_at = datetime.now(timezone.utc)
         self.db.commit()
         logger.info("Item soft-deleted: id=%d", item_id)
 
@@ -239,8 +242,7 @@ class ItemService:
         if not item:
             raise HTTPException(status_code=404, detail=f"Item {item_id} not found in trash")
         if item.image_path:
-            import os
-            path = os.path.join("/app/uploads", item.image_path)
+            path = os.path.join(settings.UPLOAD_DIR, item.image_path)
             if os.path.exists(path):
                 os.remove(path)
         self.db.delete(item)
@@ -253,8 +255,7 @@ class ItemService:
         count = len(items)
         for item in items:
             if item.image_path:
-                import os
-                path = os.path.join("/app/uploads", item.image_path)
+                path = os.path.join(settings.UPLOAD_DIR, item.image_path)
                 if os.path.exists(path):
                     os.remove(path)
             self.db.delete(item)
@@ -266,7 +267,7 @@ class ItemService:
 
     def bulk_delete(self, ids: list[int]) -> int:
         """Soft-delete multiple items."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         count = (
             self.db.query(Item)
             .filter(Item.id.in_(ids), Item.deleted_at.is_(None))
@@ -339,30 +340,30 @@ class ItemService:
     # ── Images ───────────────────────────────────────────────────────────────
 
     def upload_image(self, item_id: int, file_data: bytes, content_type: str) -> Item:
-        import uuid
-        import os
         from PIL import Image
         import io as _io
 
         item = self.get_item(item_id)
         if content_type not in ("image/jpeg", "image/png", "image/webp"):
             raise HTTPException(status_code=422, detail="Only JPEG, PNG, and WebP images are supported.")
-        if len(file_data) > 5 * 1024 * 1024:
-            raise HTTPException(status_code=422, detail="File too large. Max 5 MB.")
+        max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        if len(file_data) > max_bytes:
+            raise HTTPException(status_code=422, detail=f"File too large. Max {settings.MAX_UPLOAD_SIZE_MB} MB.")
 
         if item.image_path:
-            old_path = os.path.join("/app/uploads", item.image_path)
+            old_path = os.path.join(settings.UPLOAD_DIR, item.image_path)
             if os.path.exists(old_path):
                 os.remove(old_path)
 
         img = Image.open(_io.BytesIO(file_data))
         img = img.convert("RGB")
-        img.thumbnail((1200, 1200), Image.LANCZOS)
+        dim = settings.IMAGE_MAX_DIMENSION
+        img.thumbnail((dim, dim), Image.LANCZOS)
 
-        item_dir = os.path.join("/app/uploads", str(item_id))
+        item_dir = os.path.join(settings.UPLOAD_DIR, str(item_id))
         os.makedirs(item_dir, exist_ok=True)
         filename = f"{uuid.uuid4().hex}.jpg"
-        img.save(os.path.join(item_dir, filename), "JPEG", quality=85)
+        img.save(os.path.join(item_dir, filename), "JPEG", quality=settings.IMAGE_QUALITY)
 
         item.image_path = f"{item_id}/{filename}"
         self.db.commit()
@@ -371,10 +372,9 @@ class ItemService:
         return item
 
     def delete_image(self, item_id: int) -> Item:
-        import os
         item = self.get_item(item_id)
         if item.image_path:
-            path = os.path.join("/app/uploads", item.image_path)
+            path = os.path.join(settings.UPLOAD_DIR, item.image_path)
             if os.path.exists(path):
                 os.remove(path)
             item.image_path = None
