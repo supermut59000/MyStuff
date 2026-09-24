@@ -17,6 +17,19 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return
   if (e.request.url.includes('/api/') || e.request.url.includes('/uploads/')) return
+  // ponytail: network-first for navigations only; assets are content-hashed so cache-first stays safe
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then((r) => {
+          const copy = r.clone()
+          caches.open(CACHE).then((c) => c.put('/', copy))
+          return r
+        })
+        .catch(() => caches.match(e.request).then((c) => c ?? caches.match('/')))
+    )
+    return
+  }
   e.respondWith(
     caches.match(e.request).then((cached) => cached ?? fetch(e.request))
   )
